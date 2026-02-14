@@ -18,7 +18,6 @@ interface Entry {
   type: 'income' | 'expense';
   category: string;
   amount: number;
-  description: string;
   date: string;
 }
 
@@ -30,7 +29,16 @@ const EXPENSE_CATEGORIES = ['food', 'transport', 'utilities', 'rent', 'shopping'
 function getStoredEntries(): Entry[] {
   try {
     const stored = localStorage.getItem('hanvitt-wealth-tracker');
-    return stored ? JSON.parse(stored) : [];
+    if (!stored) return [];
+    const parsed = JSON.parse(stored);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter((e: any) =>
+      typeof e.id === 'string' &&
+      (e.type === 'income' || e.type === 'expense') &&
+      typeof e.category === 'string' && e.category.length <= 50 &&
+      typeof e.amount === 'number' && e.amount > 0 && e.amount <= 1000000000 &&
+      typeof e.date === 'string' && e.date.length <= 10
+    ).map((e: any) => ({ id: e.id, type: e.type, category: e.category, amount: e.amount, date: e.date })).slice(0, 500);
   } catch { return []; }
 }
 
@@ -46,7 +54,6 @@ export default function WealthTracker() {
   const [type, setType] = useState<'income' | 'expense'>('expense');
   const [category, setCategory] = useState('food');
   const [amount, setAmount] = useState('');
-  const [description, setDescription] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
 
   const categories = type === 'income' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
@@ -62,13 +69,12 @@ export default function WealthTracker() {
 
   const addEntry = () => {
     const numAmount = parseFloat(amount);
-    if (!numAmount || numAmount <= 0) return;
-    const newEntry: Entry = { id: Date.now().toString(), type, category, amount: numAmount, description: description || t(`wealth.cat.${category}`), date };
+    if (!numAmount || numAmount <= 0 || numAmount > 1000000000) return;
+    const newEntry: Entry = { id: Date.now().toString(), type, category, amount: numAmount, date };
     const updated = [newEntry, ...entries];
     setEntries(updated);
     saveEntries(updated);
     setAmount('');
-    setDescription('');
   };
 
   const deleteEntry = (id: string) => {
@@ -174,11 +180,6 @@ export default function WealthTracker() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label className="text-sm font-semibold" style={{ color: 'var(--text-secondary)' }}>{t('wealth.description')}</Label>
-                    <Input value={description} onChange={(e) => setDescription(e.target.value)} placeholder={t(`wealth.cat.${category}`)} className="placeholder:text-white/40" style={{ background: 'var(--glass-bg)', borderColor: 'var(--border-subtle)', color: 'var(--text-primary)' }} data-testid="input-description" />
-                  </div>
-
-                  <div className="space-y-2">
                     <Label className="text-sm font-semibold" style={{ color: 'var(--text-secondary)' }}>{t('wealth.date')}</Label>
                     <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} style={{ background: 'var(--glass-bg)', borderColor: 'var(--border-subtle)', color: 'var(--text-primary)' }} data-testid="input-date" />
                   </div>
@@ -261,8 +262,7 @@ export default function WealthTracker() {
                               <span className={cn("text-[10px] font-bold uppercase px-2 py-0.5 rounded-full", entry.type === 'income' ? "bg-emerald-500/20 text-emerald-400" : "bg-red-500/20 text-red-400")}>{t(`wealth.${entry.type}`)}</span>
                               <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>{entry.date}</span>
                             </div>
-                            <p className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>{entry.description}</p>
-                            <p className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>{t(`wealth.cat.${entry.category}`)}</p>
+                            <p className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>{t(`wealth.cat.${entry.category}`)}</p>
                           </div>
                           <div className="flex items-center gap-2 flex-shrink-0">
                             <span className={cn("font-bold text-sm", entry.type === 'income' ? "text-emerald-400" : "text-red-400")}>{entry.type === 'income' ? '+' : '-'}₹{entry.amount.toLocaleString('en-IN')}</span>

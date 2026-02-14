@@ -4,53 +4,110 @@ import { storage } from "./storage";
 import { api } from "@shared/routes";
 import { z } from "zod";
 import nodemailer from "nodemailer";
+import rateLimit from "express-rate-limit";
+
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function sanitizeInput(str: string): string {
+  return str.replace(/<[^>]*>/g, "").trim();
+}
 
 export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
-  
-  // Security Headers Middleware
+
+  const buildAllowedOrigins = (): string[] => {
+    const origins: string[] = [];
+    if (process.env.ALLOWED_ORIGINS) {
+      origins.push(...process.env.ALLOWED_ORIGINS.split(",").map(o => o.trim()));
+    }
+    if (process.env.REPLIT_DOMAINS) {
+      process.env.REPLIT_DOMAINS.split(",").forEach(d => {
+        origins.push(`https://${d.trim()}`);
+      });
+    }
+    if (process.env.REPLIT_DEV_DOMAIN) {
+      origins.push(`https://${process.env.REPLIT_DEV_DOMAIN}`);
+    }
+    if (process.env.NODE_ENV !== "production") {
+      origins.push("http://localhost:5000", "http://0.0.0.0:5000");
+    }
+    return origins;
+  };
+
   app.use((req: Request, res: Response, next: NextFunction) => {
-    // HSTS: 1 year
-    res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
-    
-    // Content Security Policy
+    const origin = req.headers.origin;
+    if (origin) {
+      const allowed = buildAllowedOrigins();
+      if (allowed.includes(origin)) {
+        res.setHeader("Access-Control-Allow-Origin", origin);
+        res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+        res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+        res.setHeader("Access-Control-Max-Age", "86400");
+      }
+    }
+
+    if (req.method === "OPTIONS") {
+      return res.status(204).end();
+    }
+
+    res.setHeader("Vary", "Origin");
+
+    res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload");
+
     const csp = [
       "default-src 'self'",
       "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "font-src 'self' https://fonts.gstatic.com",
-      "img-src 'self' data: https://images.unsplash.com",
-      "child-src 'self' https://www.google.com",
-      "frame-src 'self' https://www.google.com",
+      "img-src 'self' data: blob:",
       "connect-src 'self'",
+      "frame-src 'none'",
       "frame-ancestors 'none'",
       "object-src 'none'",
       "base-uri 'self'",
-      "x-content-type-options nosniff",
-      "x-frame-options DENY",
-      "x-xss-protection 1; mode=block"
+      "form-action 'self'",
+      "upgrade-insecure-requests"
     ].join("; ");
     
     res.setHeader("Content-Security-Policy", csp);
     res.setHeader("X-Content-Type-Options", "nosniff");
     res.setHeader("X-Frame-Options", "DENY");
-    res.setHeader("X-XSS-Protection", "1; mode=block");
+    res.setHeader("X-XSS-Protection", "0");
     res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+    res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=()");
+    res.removeHeader("X-Powered-By");
     next();
   });
 
-  // Contact Form Endpoint
-  app.post(api.contact.create.path, async (req, res) => {
+  const contactLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 5,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { message: "Too many requests. Please try again after 15 minutes." },
+  });
+
+  app.post(api.contact.create.path, contactLimiter, async (req, res) => {
     try {
-      const input = api.contact.create.input.parse(req.body);
+      const raw = api.contact.create.input.parse(req.body);
+      const input = {
+        name: sanitizeInput(raw.name),
+        email: sanitizeInput(raw.email),
+        phone: raw.phone ? sanitizeInput(raw.phone) : undefined,
+        message: sanitizeInput(raw.message),
+      };
+
       const result = await storage.createContactRequest(input);
 
-      // Email Notification Logic
-      // NOTE: In a real production environment, you would use environment variables
-      // for SMTP configuration (host, port, user, pass).
-      // This is a template for the email sending logic.
       try {
         const transporter = nodemailer.createTransport({
           host: process.env.SMTP_HOST || "smtp.gmail.com",
@@ -62,27 +119,19 @@ export async function registerRoutes(
           },
         });
 
+        const safeName = escapeHtml(input.name);
+        const safeEmail = escapeHtml(input.email);
+        const safePhone = escapeHtml(input.phone || "N/A");
+        const safeMessage = escapeHtml(input.message);
+
         const mailOptions = {
-          from: `"Hanvitt Advisors" <noreply@hanvitt.in>`,
-          to: "help@hanvitt.in",
-          subject: `New Consultation Request from ${input.name}`,
-          text: `
-            Name: ${input.name}
-            Email: ${input.email}
-            Phone: ${input.phone || "N/A"}
-            Message: ${input.message}
-          `,
-          html: `
-            <h3>New Consultation Request</h3>
-            <p><strong>Name:</strong> ${input.name}</p>
-            <p><strong>Email:</strong> ${input.email}</p>
-            <p><strong>Phone:</strong> ${input.phone || "N/A"}</p>
-            <p><strong>Message:</strong> ${input.message}</p>
-          `,
+          from: process.env.EMAIL_FROM || `"Hanvitt Advisors" <noreply@hanvitt.in>`,
+          to: process.env.EMAIL_TO || "help@hanvitt.in",
+          subject: `New Consultation Request from ${safeName}`,
+          text: `Name: ${input.name}\nEmail: ${input.email}\nPhone: ${input.phone || "N/A"}\nMessage: ${input.message}`,
+          html: `<h3>New Consultation Request</h3><p><strong>Name:</strong> ${safeName}</p><p><strong>Email:</strong> ${safeEmail}</p><p><strong>Phone:</strong> ${safePhone}</p><p><strong>Message:</strong> ${safeMessage}</p>`,
         };
 
-        // We attempt to send, but we don't block the response to the user
-        // if the email fails (since the data is already in the database).
         transporter.sendMail(mailOptions).catch(err => {
           console.error("Email notification failed:", err);
         });
@@ -90,12 +139,11 @@ export async function registerRoutes(
         console.error("Transporter setup failed:", emailErr);
       }
 
-      res.status(201).json(result);
+      res.status(201).json({ id: result.id, message: "Request submitted successfully" });
     } catch (err) {
       if (err instanceof z.ZodError) {
         return res.status(400).json({
-          message: err.errors[0].message,
-          field: err.errors[0].path.join('.'),
+          message: "Invalid input. Please check your form fields.",
         });
       }
       throw err;

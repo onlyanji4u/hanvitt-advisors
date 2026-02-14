@@ -17,6 +17,11 @@ export const insertContactRequestSchema = createInsertSchema(contactRequests).om
   id: true, 
   createdAt: true,
   isRead: true 
+}).extend({
+  name: z.string().min(2).max(100),
+  email: z.string().email().max(254),
+  phone: z.string().max(20).optional(),
+  message: z.string().min(5).max(2000),
 });
 
 // Calculator Types (Client-side only, but useful for validation consistency if needed)

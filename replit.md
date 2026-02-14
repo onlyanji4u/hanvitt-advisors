@@ -61,6 +61,20 @@ Preferred communication style: Simple, everyday language.
 
 4. **Single API endpoint**: The app currently has only one API endpoint (`POST /api/contact`). The route definition pattern in `shared/routes.ts` is designed to scale to more endpoints.
 
+## Security Hardening
+
+- **CORS**: Explicit allowlist-based CORS policy (no wildcards). Uses Replit domain env vars + optional `ALLOWED_ORIGINS`. Foreign-origin API requests are blocked.
+- **CSP**: Strict Content Security Policy blocking unauthorized scripts, frames, objects.
+- **Headers**: HSTS with preload, X-Content-Type-Options: nosniff, X-Frame-Options: DENY, Permissions-Policy, Referrer-Policy.
+- **Rate Limiting**: Contact form endpoint limited to 5 requests per 15 minutes per IP.
+- **Input Sanitization**: Server-side HTML stripping on all contact form inputs. Email templates use HTML entity escaping.
+- **Validation**: Zod schema validation on all API inputs with strict field length limits.
+- **Body Size Limit**: 100KB max on JSON and URL-encoded request bodies.
+- **Parameterized Queries**: All DB queries via Drizzle ORM (no raw SQL).
+- **Logging**: API response logging only captures message field (no user data).
+- **Secrets**: All sensitive config via environment variables/secrets. `.env` files in `.gitignore`.
+- **Email Config**: `EMAIL_FROM`, `EMAIL_TO` via env vars. SMTP credentials (`SMTP_USER`, `SMTP_PASS`) expected as secrets when configured.
+
 ## External Dependencies
 
 - **PostgreSQL**: Required. Connection via `DATABASE_URL` environment variable. Used with `pg` (node-postgres) driver and Drizzle ORM.

@@ -41,3 +41,9 @@ waitForPort = 5000
 
 [agent]
 integrations = ["github:1.0.0"]
+
+[userenv]
+
+[userenv.shared]
+EMAIL_FROM = "\"Hanvitt Advisors\" <noreply@hanvitt.in>"
+EMAIL_TO = "help@hanvitt.in"
