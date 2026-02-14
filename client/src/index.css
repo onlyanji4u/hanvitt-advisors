@@ -1,0 +1,229 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --navy: 218 47% 19%;
+  --gold: 46 65% 52%;
+
+  --background: 225 15% 6%;
+  --foreground: 210 20% 93%;
+
+  --card: 222 12% 11%;
+  --card-foreground: 210 20% 93%;
+
+  --popover: 222 12% 11%;
+  --popover-foreground: 210 20% 93%;
+
+  --primary: 46 65% 52%;
+  --primary-foreground: 225 15% 6%;
+
+  --secondary: 220 10% 16%;
+  --secondary-foreground: 210 20% 93%;
+
+  --muted: 220 10% 16%;
+  --muted-foreground: 215 10% 60%;
+
+  --accent: 220 10% 16%;
+  --accent-foreground: 210 20% 93%;
+
+  --destructive: 0 63% 31%;
+  --destructive-foreground: 210 20% 93%;
+
+  --border: 220 10% 22%;
+  --input: 220 10% 24%;
+  --ring: 46 65% 52%;
+
+  --radius: 0.75rem;
+
+  --font-sans: 'Space Grotesk', 'Inter', sans-serif;
+  --font-serif: 'Space Grotesk', 'Inter', sans-serif;
+
+  --page-bg: #0c1117;
+  --page-bg-alt: #111822;
+  --text-primary: #ffffff;
+  --text-secondary: rgba(255,255,255,0.7);
+  --text-tertiary: rgba(255,255,255,0.5);
+  --text-muted: rgba(255,255,255,0.4);
+  --border-subtle: rgba(255,255,255,0.08);
+  --glass-bg: rgba(255,255,255,0.04);
+  --nav-bg: rgba(12,17,23,0.8);
+}
+
+.light {
+  --background: 220 20% 96%;
+  --foreground: 222 47% 15%;
+
+  --card: 0 0% 100%;
+  --card-foreground: 222 47% 15%;
+
+  --popover: 0 0% 100%;
+  --popover-foreground: 222 47% 15%;
+
+  --primary: 46 65% 45%;
+  --primary-foreground: 0 0% 100%;
+
+  --secondary: 220 15% 92%;
+  --secondary-foreground: 222 47% 15%;
+
+  --muted: 220 15% 92%;
+  --muted-foreground: 215 10% 45%;
+
+  --accent: 220 15% 92%;
+  --accent-foreground: 222 47% 15%;
+
+  --destructive: 0 63% 50%;
+  --destructive-foreground: 0 0% 100%;
+
+  --border: 220 15% 85%;
+  --input: 220 15% 88%;
+  --ring: 46 65% 45%;
+
+  --page-bg: #f5f7fa;
+  --page-bg-alt: #ffffff;
+  --text-primary: #1a2332;
+  --text-secondary: rgba(26,35,50,0.75);
+  --text-tertiary: rgba(26,35,50,0.55);
+  --text-muted: rgba(26,35,50,0.4);
+  --border-subtle: rgba(26,35,50,0.1);
+  --glass-bg: rgba(255,255,255,0.7);
+  --nav-bg: rgba(245,247,250,0.85);
+}
+
+@layer base {
+  body {
+    @apply bg-background text-foreground antialiased font-sans;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Space Grotesk', 'Inter', sans-serif;
+    @apply text-foreground font-bold;
+  }
+
+  p, span, label, a {
+    font-family: 'Inter', 'Space Grotesk', sans-serif;
+  }
+}
+
+@layer components {
+  .glow-gold {
+    box-shadow: 0 0 30px rgba(212, 175, 55, 0.15), 0 0 60px rgba(212, 175, 55, 0.05);
+  }
+
+  .gradient-border {
+    position: relative;
+    background: hsl(222 12% 11%);
+    border: 1px solid transparent;
+    background-clip: padding-box;
+  }
+
+  .gradient-border::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(135deg, rgba(212,175,55,0.3), transparent, rgba(212,175,55,0.1));
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+
+  .marquee-track {
+    display: flex;
+    animation: marquee 30s linear infinite;
+  }
+
+  .marquee-track:hover {
+    animation-play-state: paused;
+  }
+
+  @keyframes marquee {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+  }
+
+  .animate-float {
+    animation: float 6s ease-in-out infinite;
+  }
+
+  @keyframes pulse-glow {
+    0%, 100% { box-shadow: 0 0 20px rgba(212,175,55,0.2); }
+    50% { box-shadow: 0 0 40px rgba(212,175,55,0.4); }
+  }
+
+  .animate-pulse-glow {
+    animation: pulse-glow 3s ease-in-out infinite;
+  }
+
+  .glass {
+    background: rgba(255, 255, 255, 0.04);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .noise-bg {
+    position: relative;
+  }
+
+  .noise-bg::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    opacity: 0.02;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='1'/%3E%3C/svg%3E");
+    pointer-events: none;
+  }
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--page-bg);
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--border));
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(46 65% 52%);
+}
+
+.light .glass {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.light .gradient-border {
+  background: #ffffff;
+}
+
+.light .glow-gold {
+  box-shadow: 0 0 30px rgba(212, 175, 55, 0.1), 0 0 60px rgba(212, 175, 55, 0.03);
+}
+
+.light {
+  color-scheme: light;
+}
+
+.light * {
+  --tw-ring-color: hsl(46 65% 45% / 0.5);
+}
+
+.light .noise-bg::after {
+  opacity: 0.01;
+}
