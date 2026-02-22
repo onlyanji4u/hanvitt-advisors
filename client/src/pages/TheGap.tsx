@@ -22,11 +22,11 @@ export default function TheGap() {
 
   const [currentAge, setCurrentAge] = React.useState(30);
   const [retirementAge, setRetirementAge] = React.useState(60);
-  const [annualExpenses, setAnnualExpenses] = React.useState(500000);
+  const [annualExpenses, setAnnualExpenses] = React.useState("500000");
 
   const [adults, setAdults] = React.useState(2);
   const [kids, setKids] = React.useState(1);
-  const [monthlyMedical, setMonthlyMedical] = React.useState(2000);
+  const [monthlyMedical, setMonthlyMedical] = React.useState("2000");
   const [locationTier, setLocationTier] = React.useState("tier1");
   const [hasPreExisting, setHasPreExisting] = React.useState("no");
   const [plannedSurgery, setPlannedSurgery] = React.useState("none");
@@ -35,7 +35,8 @@ export default function TheGap() {
   const safeWithdrawalRate = 0.04;
 
   const yearsToRetirement = Math.max(0, retirementAge - currentAge);
-  const futureAnnualExpenses = annualExpenses * Math.pow(1 + inflationRate, yearsToRetirement);
+  const annualExp = parseFloat(annualExpenses) || 0;
+  const futureAnnualExpenses = annualExp * Math.pow(1 + inflationRate, yearsToRetirement);
   const corpusNeeded = futureAnnualExpenses / safeWithdrawalRate;
 
   const healthMetrics = React.useMemo(() => {
@@ -51,7 +52,7 @@ export default function TheGap() {
     baseCover = Math.max(baseCover, surgeryPrices[plannedSurgery] || 0);
     if (locationTier === "tier1") baseCover *= 1.5;
     if (locationTier === "tier2") baseCover *= 1.2;
-    if (monthlyMedical > 5000) baseCover += 500000;
+    if ((parseFloat(monthlyMedical) || 0) > 5000) baseCover += 500000;
     if (hasPreExisting === "yes") baseCover *= 1.3;
     baseCover *= Math.pow(1.06, 5);
 
@@ -64,14 +65,13 @@ export default function TheGap() {
     };
   }, [adults, kids, locationTier, hasPreExisting, monthlyMedical, plannedSurgery]);
 
-  const handleNumberInput = (setter: (val: number) => void, max: number = 1000000000) => (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleNumberInput = (setter: (val: string) => void, max: number = 1000000000) => (e: React.ChangeEvent<HTMLInputElement>) => {
     const rawVal = e.target.value;
+    if (rawVal === "") { setter(""); return; }
     const sanitized = DOMPurify.sanitize(rawVal);
     const val = parseFloat(sanitized);
     if (!isNaN(val)) {
-      setter(Math.min(Math.max(0, val), max));
-    } else if (rawVal === "") {
-      setter(0);
+      setter(String(Math.min(Math.max(0, val), max)));
     }
   };
 

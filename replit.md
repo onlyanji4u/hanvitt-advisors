@@ -29,6 +29,7 @@ Preferred communication style: Simple, everyday language.
 - `/savings-lab` — Compound interest savings calculator with area charts
 - `/wealth-tracker` — Personal income/expense tracker with pie chart (by category) and bar chart (monthly trend), localStorage-backed
 - `/fin-score` — Financial Health Score assessment (0-100) with gauge chart, breakdown bar chart, personalized recommendations, plus integrated Health Insurance (family floater for self+spouse+children, separate senior citizen plan for parents) and Term Insurance recommendation engine (HLV method, per-lakh premium rates, city tier and age multipliers, 8% medical inflation projection)
+- `/retirement-planner` — AI-powered Retirement Planning with deterministic calculations (SIP FV, inflation-adjusted expenses, corpus calculation, PMT solver), year-by-year projections, readiness gauge, and Hugging Face AI insights (risk assessment, savings advice, asset allocation, behavioral tips). Indian financial context (PPF, NPS, ELSS). Rate-limited AI endpoint (50 req/15min), 15s timeout with fallback.
 - `/info` — "The Tea" - Insurance education page with IRDAI metrics (4% penetration, 75% without health cover, ₹6,600 per capita premium), health & term insurance facts
 - `/contact` — WhatsApp and Call buttons for direct communication
 

@@ -46,6 +46,50 @@ export const dimeCalculatorSchema = z.object({
   assets: z.number().min(0),
 });
 
+// Retirement Calculator Input Schema
+export const retirementCalculatorSchema = z.object({
+  currentAge: z.number().min(18).max(80),
+  retirementAge: z.number().min(30).max(85),
+  lifeExpectancy: z.number().min(60).max(110),
+  monthlyExpenses: z.number().min(1000).max(100000000),
+  currentSavings: z.number().min(0).max(1000000000000),
+  monthlySIP: z.number().min(0).max(100000000),
+  expectedReturn: z.number().min(0).max(30),
+  inflationRate: z.number().min(0).max(20),
+  postRetirementReturn: z.number().min(0).max(20),
+}).refine(data => data.retirementAge > data.currentAge, {
+  message: "Retirement age must be greater than current age",
+  path: ["retirementAge"],
+}).refine(data => data.lifeExpectancy > data.retirementAge, {
+  message: "Life expectancy must be greater than retirement age",
+  path: ["lifeExpectancy"],
+});
+
+export const retirementAIInputSchema = z.object({
+  calculationResult: z.object({
+    requiredCorpus: z.number(),
+    projectedCorpus: z.number(),
+    shortfall: z.number(),
+    monthlyExpensesAtRetirement: z.number(),
+    additionalMonthlySIPNeeded: z.number(),
+    savingsRate: z.number(),
+    yearByYearProjection: z.array(z.object({
+      age: z.number(),
+      year: z.number(),
+      corpus: z.number(),
+      annualContribution: z.number(),
+      annualReturn: z.number(),
+    })),
+  }),
+  userProfile: z.object({
+    riskTolerance: z.enum(["low", "moderate", "high"]),
+    incomeRange: z.string().optional(),
+    goalPriority: z.string().optional(),
+  }),
+});
+
 // Shared Types
 export type InsertContactRequest = z.infer<typeof insertContactRequestSchema>;
 export type ContactRequest = typeof contactRequests.$inferSelect;
+export type RetirementCalculatorInput = z.infer<typeof retirementCalculatorSchema>;
+export type RetirementAIInput = z.infer<typeof retirementAIInputSchema>;

@@ -4,6 +4,7 @@ import { Menu, X, Phone, ChevronDown, Sun, Moon } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLanguage } from "@/hooks/use-language";
 import { useTheme } from "@/hooks/use-theme";
+import hanvittLogo from "@assets/IMG_1898_1771384571904.png";
 
 export function Navigation() {
   const [isOpen, setIsOpen] = useState(false);
@@ -16,6 +17,7 @@ export function Navigation() {
     { href: "/savings-lab", label: t('nav.savingsLab') },
     { href: "/wealth-tracker", label: t('nav.wealthTracker') },
     { href: "/fin-score", label: t('nav.finScore') },
+    { href: "/retirement-planner", label: t('nav.retirementPlanner') },
   ];
 
   const isToolPage = toolLinks.some(l => l.href === location);
@@ -26,12 +28,12 @@ export function Navigation() {
     <header className="sticky top-0 z-50 w-full border-b" style={{ borderColor: 'var(--border-subtle)', background: 'var(--nav-bg)', backdropFilter: 'blur(16px)' }}>
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         <Link href="/" className="flex items-center gap-3" data-testid="link-home-logo">
-          <div className="flex items-center justify-center h-9 w-9 rounded-md bg-[#D4AF37] text-[#1a2332] font-bold text-lg" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>H</div>
+          <img src={hanvittLogo} alt="Hanvitt Advisors" className="h-9 w-9 rounded-md object-contain" />
           <div className="flex flex-col">
             <span className="text-lg font-bold leading-tight" style={{ fontFamily: "'Playfair Display', Georgia, serif", color: 'var(--text-primary)' }}>
               Hanvitt <span className="hidden sm:inline">Advisors</span>
             </span>
-            <span className="text-[8px] font-medium uppercase tracking-[0.25em] leading-none hidden sm:block text-[#D4AF37]">Guiding Wealth</span>
+            <span className="text-[8px] font-medium uppercase tracking-[0.25em] leading-none hidden sm:block text-[#D4AF37]">{t('nav.guidingWealth')}</span>
           </div>
         </Link>
 

@@ -42,7 +42,7 @@ export default function Contact() {
                 </div>
                 <div>
                   <h3 className="font-bold" style={{ color: 'var(--text-primary)' }}>{t('contact.email')}</h3>
-                  <p style={{ color: 'var(--text-tertiary)' }}>help@hanvitt.in</p>
+                  <p style={{ color: 'var(--text-tertiary)' }}>hanvitt.advisors@gmail.com</p>
                   <p className="text-sm" style={{ color: 'var(--text-tertiary)' }}>{t('contact.reply')}</p>
                 </div>
               </div>

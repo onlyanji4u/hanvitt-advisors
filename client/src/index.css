@@ -135,7 +135,8 @@
 
   .marquee-track {
     display: flex;
-    animation: marquee 30s linear infinite;
+    width: max-content;
+    animation: marquee 20s linear infinite;
   }
 
   .marquee-track:hover {
@@ -144,7 +145,7 @@
 
   @keyframes marquee {
     0% { transform: translateX(0); }
-    100% { transform: translateX(-50%); }
+    100% { transform: translateX(-33.333%); }
   }
 
   @keyframes float {

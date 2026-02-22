@@ -25,15 +25,17 @@ import { amountToWords } from "@/lib/amount-words";
 export default function SavingsLab() {
   const { t } = useLanguage();
   const { theme } = useTheme();
-  const [initialAmount, setInitialAmount] = useState(10000);
-  const [monthlyContribution, setMonthlyContribution] = useState(500);
+  const [initialAmount, setInitialAmount] = useState("10000");
+  const [monthlyContribution, setMonthlyContribution] = useState("500");
   const [interestRate, setInterestRate] = useState(7);
   const [years, setYears] = useState(20);
 
   const data = useMemo(() => {
+    const initAmt = parseFloat(initialAmount) || 0;
+    const monthlyAmt = parseFloat(monthlyContribution) || 0;
     const chartData = [];
-    let currentBalance = initialAmount;
-    let totalInvested = initialAmount;
+    let currentBalance = initAmt;
+    let totalInvested = initAmt;
 
     for (let year = 0; year <= years; year++) {
       chartData.push({
@@ -44,8 +46,8 @@ export default function SavingsLab() {
       });
 
       for (let m = 0; m < 12; m++) {
-        currentBalance = currentBalance * (1 + (interestRate / 100) / 12) + monthlyContribution;
-        totalInvested += monthlyContribution;
+        currentBalance = currentBalance * (1 + (interestRate / 100) / 12) + monthlyAmt;
+        totalInvested += monthlyAmt;
       }
     }
     return chartData;
@@ -65,14 +67,13 @@ export default function SavingsLab() {
     legendColor: theme === 'light' ? 'rgba(26,35,50,0.7)' : '#ffffff60'
   };
 
-  const handleNumberInput = (setter: (val: number) => void, max: number = 1000000000) => (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleNumberInput = (setter: (val: string) => void, max: number = 1000000000) => (e: React.ChangeEvent<HTMLInputElement>) => {
     const rawVal = e.target.value;
+    if (rawVal === "") { setter(""); return; }
     const sanitized = DOMPurify.sanitize(rawVal);
     const val = parseFloat(sanitized);
     if (!isNaN(val)) {
-      setter(Math.min(Math.max(0, val), max));
-    } else if (rawVal === "") {
-      setter(0);
+      setter(String(Math.min(Math.max(0, val), max)));
     }
   };
 

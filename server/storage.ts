@@ -2,7 +2,7 @@ import { db } from "./db";
 import {
   contactRequests,
   type InsertContactRequest,
-  type ContactRequest
+  type ContactRequest,
 } from "@shared/schema";
 
 export interface IStorage {

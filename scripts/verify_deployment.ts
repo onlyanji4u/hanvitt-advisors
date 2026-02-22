@@ -27,7 +27,7 @@ function checkContactAPI() {
   return new Promise((resolve, reject) => {
     const data = JSON.stringify({
       name: 'Verification Bot',
-      email: 'help@hanvitt.in',
+      email: 'hanvitt.advisors@gmail.com',
       message: 'Checking API functionality',
       phone: '1234567890'
     });

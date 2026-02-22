@@ -21,14 +21,16 @@ export default function Home() {
     { icon: TrendingUp, title: t('nav.savingsLab'), description: t('savings.desc'), link: '/savings-lab', gradient: 'from-blue-500 to-cyan-400' },
     { icon: Wallet, title: t('nav.wealthTracker'), description: t('wealth.desc'), link: '/wealth-tracker', gradient: 'from-orange-500 to-amber-400' },
     { icon: Award, title: t('nav.finScore'), description: t('score.desc'), link: '/fin-score', gradient: 'from-rose-500 to-red-400' },
+    { icon: Target, title: t('nav.retirementPlanner'), description: t('retirement.desc'), link: '/retirement-planner', gradient: 'from-emerald-500 to-teal-400' },
   ];
 
-  const marqueeTools = [...tools, ...tools];
+  const marqueeTools = [...tools, ...tools, ...tools];
 
   const bentoFeatures = [
     { icon: TrendingUp, title: t('showcase.savings.tagline'), desc: t('showcase.savings.desc'), link: '/savings-lab', accent: '#3b82f6' },
     { icon: Wallet, title: t('showcase.wealth.tagline'), desc: t('showcase.wealth.desc'), link: '/wealth-tracker', accent: '#f59e0b' },
     { icon: Award, title: t('showcase.score.tagline'), desc: t('showcase.score.desc'), link: '/fin-score', accent: '#f43f5e' },
+    { icon: Target, title: t('showcase.retirement.tagline'), desc: t('showcase.retirement.desc'), link: '/retirement-planner', accent: '#10b981' },
   ];
 
   const securityItems = [
@@ -136,7 +138,7 @@ export default function Home() {
             <p className="max-w-xl mx-auto text-sm sm:text-base" style={{ color: 'var(--text-tertiary)' }}>{t('tools.description')}</p>
           </motion.div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {bentoFeatures.map((item, idx) => (
               <motion.div
                 key={idx}

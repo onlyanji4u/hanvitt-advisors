@@ -1,6 +1,7 @@
 import { Link } from "wouter";
 import { ShieldCheck, Phone, Mail, MapPin } from "lucide-react";
 import { useLanguage } from "@/hooks/use-language";
+import hanvittLogo from "@assets/IMG_1898_1771384571904.png";
 
 export function Footer() {
   const { t } = useLanguage();
@@ -9,6 +10,7 @@ export function Footer() {
     { href: "/savings-lab", label: t('nav.savingsLab') },
     { href: "/wealth-tracker", label: t('nav.wealthTracker') },
     { href: "/fin-score", label: t('nav.finScore') },
+    { href: "/retirement-planner", label: t('nav.retirementPlanner') },
   ];
 
   return (
@@ -17,10 +19,10 @@ export function Footer() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8 mb-8">
           <div>
             <div className="flex items-center gap-3 mb-4">
-              <div className="flex items-center justify-center h-9 w-9 rounded-md bg-[#D4AF37] text-[#1a2332] font-bold text-lg" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>H</div>
+              <img src={hanvittLogo} alt="Hanvitt Advisors" className="h-9 w-9 rounded-md object-contain" />
               <div className="flex flex-col">
                 <span className="text-lg font-bold leading-tight" style={{ fontFamily: "'Playfair Display', Georgia, serif", color: 'var(--text-primary)' }}>Hanvitt Advisors</span>
-                <span className="text-[8px] font-medium uppercase tracking-[0.25em] leading-none text-[#D4AF37]">Guiding Wealth</span>
+                <span className="text-[8px] font-medium uppercase tracking-[0.25em] leading-none text-[#D4AF37]">{t('nav.guidingWealth')}</span>
               </div>
             </div>
             <p className="text-sm leading-relaxed" style={{ color: 'var(--text-tertiary)' }}>
@@ -52,7 +54,7 @@ export function Footer() {
               </div>
               <div className="flex items-center gap-2">
                 <Mail className="h-4 w-4 text-[#D4AF37]/50 flex-shrink-0" />
-                <a href="mailto:help@hanvitt.in" className="hover:text-[#D4AF37] transition-colors">help@hanvitt.in</a>
+                <a href="mailto:hanvitt.advisors@gmail.com" className="hover:text-[#D4AF37] transition-colors">hanvitt.advisors@gmail.com</a>
               </div>
               <p className="text-[#D4AF37]/60 font-medium text-xs">{t('footer.claims')}</p>
             </div>

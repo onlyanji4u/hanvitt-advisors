@@ -11,6 +11,7 @@ import WealthTracker from "@/pages/WealthTracker";
 import FinScore from "@/pages/FinScore";
 import Contact from "@/pages/Contact";
 import Info from "@/pages/Info";
+import RetirementPlanner from "@/pages/RetirementPlanner";
 
 function ScrollToTop() {
   const [location] = useLocation();
@@ -27,6 +28,7 @@ function Router() {
       <Route path="/savings-lab" component={SavingsLab} />
       <Route path="/wealth-tracker" component={WealthTracker} />
       <Route path="/fin-score" component={FinScore} />
+      <Route path="/retirement-planner" component={RetirementPlanner} />
       <Route path="/info" component={Info} />
       <Route path="/contact" component={Contact} />
       <Route component={NotFound} />

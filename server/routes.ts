@@ -5,6 +5,8 @@ import { api } from "@shared/routes";
 import { z } from "zod";
 import nodemailer from "nodemailer";
 import rateLimit from "express-rate-limit";
+import { calculateRetirement } from "./services/retirementEngine";
+import { getAIRetirementAnalysis } from "./services/aiRetirementAdvisor";
 
 function escapeHtml(str: string): string {
   return str
@@ -125,8 +127,8 @@ export async function registerRoutes(
         const safeMessage = escapeHtml(input.message);
 
         const mailOptions = {
-          from: process.env.EMAIL_FROM || `"Hanvitt Advisors" <noreply@hanvitt.in>`,
-          to: process.env.EMAIL_TO || "help@hanvitt.in",
+          from: process.env.EMAIL_FROM || `"Hanvitt Advisors" <hanvitt.advisors@gmail.com>`,
+          to: process.env.EMAIL_TO || "hanvitt.advisors@gmail.com",
           subject: `New Consultation Request from ${safeName}`,
           text: `Name: ${input.name}\nEmail: ${input.email}\nPhone: ${input.phone || "N/A"}\nMessage: ${input.message}`,
           html: `<h3>New Consultation Request</h3><p><strong>Name:</strong> ${safeName}</p><p><strong>Email:</strong> ${safeEmail}</p><p><strong>Phone:</strong> ${safePhone}</p><p><strong>Message:</strong> ${safeMessage}</p>`,
@@ -147,6 +149,42 @@ export async function registerRoutes(
         });
       }
       throw err;
+    }
+  });
+
+  app.post(api.retirement.calculate.path, async (req, res) => {
+    try {
+      const input = api.retirement.calculate.input.parse(req.body);
+      const result = calculateRetirement(input);
+      res.json(result);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid input. Please check your values." });
+      }
+      console.error("Retirement calculation error:", err instanceof Error ? err.message : "unknown");
+      res.status(500).json({ message: "Calculation failed. Please try again." });
+    }
+  });
+
+  const aiLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 50,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { message: "Too many AI requests. Please try again after 15 minutes." },
+  });
+
+  app.post(api.retirement.aiAnalysis.path, aiLimiter, async (req, res) => {
+    try {
+      const input = api.retirement.aiAnalysis.input.parse(req.body);
+      const recommendations = await getAIRetirementAnalysis(input);
+      res.json({ recommendations });
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid input for AI analysis." });
+      }
+      console.error("AI analysis error:", err instanceof Error ? err.message : "unknown");
+      res.status(500).json({ message: "AI analysis unavailable. Please try again later." });
     }
   });
 

@@ -15,7 +15,7 @@ export async function seedDatabase() {
     
     await storage.createContactRequest({
       name: "System Test",
-      email: "help@hanvitt.in",
+      email: "hanvitt.advisors@gmail.com",
       message: "Initial system verification test.",
       phone: "0000000000"
     });

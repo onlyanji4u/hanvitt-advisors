@@ -16,29 +16,28 @@ export default function DimeTracker() {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
 
-  const [debt, setDebt] = useState(5000);
-  const [income, setIncome] = useState(100000);
-  const [mortgage, setMortgage] = useState(200000);
-  const [education, setEducation] = useState(50000);
-  const [assets, setAssets] = useState(25000);
+  const [debt, setDebt] = useState("5000");
+  const [income, setIncome] = useState("100000");
+  const [mortgage, setMortgage] = useState("200000");
+  const [education, setEducation] = useState("50000");
+  const [assets, setAssets] = useState("25000");
 
-  const totalNeeds = debt + income + mortgage + education;
-  const gap = Math.max(0, totalNeeds - assets);
+  const totalNeeds = (parseFloat(debt) || 0) + (parseFloat(income) || 0) + (parseFloat(mortgage) || 0) + (parseFloat(education) || 0);
+  const gap = Math.max(0, totalNeeds - (parseFloat(assets) || 0));
 
-  const handleNumberInput = (setter: (val: number) => void, max: number = 1000000000) => (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleNumberInput = (setter: (val: string) => void, max: number = 1000000000) => (e: React.ChangeEvent<HTMLInputElement>) => {
     const rawVal = e.target.value;
+    if (rawVal === "") { setter(""); return; }
     const sanitized = DOMPurify.sanitize(rawVal);
     const val = parseFloat(sanitized);
     if (!isNaN(val)) {
-      setter(Math.min(Math.max(0, val), max));
-    } else if (rawVal === "") {
-      setter(0);
+      setter(String(Math.min(Math.max(0, val), max)));
     }
   };
 
   const chartData = [
     { name: "Total Needs", value: totalNeeds },
-    { name: "Existing Assets", value: assets },
+    { name: "Existing Assets", value: parseFloat(assets) || 0 },
     { name: "Protection Gap", value: gap },
   ];
 
