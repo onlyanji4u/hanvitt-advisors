@@ -1,9 +1,24 @@
 import express, { type Request, Response, NextFunction } from "express";
+import helmet from "helmet";
+import cookieParser from "cookie-parser";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
+import { storage } from "./storage";
+
+const isProduction = process.env.NODE_ENV === "production";
+
+if (isProduction) {
+  const required = ["DATABASE_URL", "RECAPTCHA_SECRET_KEY", "SMTP_USER", "SMTP_PASS"];
+  const missing = required.filter(k => !process.env[k]);
+  if (missing.length > 0) {
+    console.error(`FATAL: Missing required environment variables: ${missing.join(", ")}`);
+    process.exit(1);
+  }
+}
 
 const app = express();
+app.set("trust proxy", 1);
 const httpServer = createServer(app);
 
 declare module "http" {
@@ -12,16 +27,24 @@ declare module "http" {
   }
 }
 
+app.use(helmet({
+  contentSecurityPolicy: false,
+  crossOriginEmbedderPolicy: false,
+  crossOriginResourcePolicy: false,
+}));
+
+app.use(cookieParser());
+
 app.use(
   express.json({
-    limit: "100kb",
+    limit: "10kb",
     verify: (req, _res, buf) => {
       req.rawBody = buf;
     },
   }),
 );
 
-app.use(express.urlencoded({ extended: false, limit: "100kb" }));
+app.use(express.urlencoded({ extended: false, limit: "10kb" }));
 
 export function log(message: string, source = "express") {
   const formattedTime = new Date().toLocaleTimeString("en-US", {
@@ -101,4 +124,29 @@ app.use((req, res, next) => {
       log(`serving on port ${port}`);
     },
   );
+
+  const PURGE_INTERVAL_MS = 14 * 24 * 60 * 60 * 1000;
+  const runPurge = async () => {
+    try {
+      const result = await storage.purgeOldRecords(14);
+      if (result.contactsDeleted > 0 || result.logsDeleted > 0) {
+        log(`Purged ${result.contactsDeleted} contact requests and ${result.logsDeleted} security logs older than 14 days`);
+      }
+    } catch (err) {
+      console.error("Purge failed:", err instanceof Error ? err.message : "unknown");
+    }
+  };
+  runPurge();
+  setInterval(runPurge, PURGE_INTERVAL_MS);
 })();
+
+process.on("unhandledRejection", (reason) => {
+  console.error("Unhandled Rejection:", reason instanceof Error ? reason.message : "unknown");
+});
+
+process.on("uncaughtException", (err) => {
+  console.error("Uncaught Exception:", err.message);
+  if (isProduction) {
+    process.exit(1);
+  }
+});

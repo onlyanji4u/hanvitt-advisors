@@ -47,3 +47,7 @@ integrations = ["github:1.0.0"]
 [userenv.shared]
 EMAIL_FROM = "\"Hanvitt Advisors\" <noreply@hanvitt.in>"
 EMAIL_TO = "help@hanvitt.in"
+SMTP_HOST = "smtp.gmail.com"
+SMTP_PORT = "465"
+SMTP_FROM = "Hanvitt Advisors <hanvitt.advisors@gmail.com>"
+VITE_RECAPTCHA_SITE_KEY = "6LeT0HMsAAAAAPLTHDxKSCaFNozs0APoMh2ASTew"

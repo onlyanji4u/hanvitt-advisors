@@ -1,0 +1,372 @@
+PROJECT: HANVITT ADVISORS – CONTACT US (LEADS + EMAIL + reCAPTCHA v3)
+
+You are enhancing an existing production-grade FinTech application.
+
+Tech Stack:
+- React 18 + TypeScript + Vite
+- Tailwind + shadcn/ui
+- Framer Motion
+- Node.js + Express + TypeScript
+- PostgreSQL (Neon)
+- Drizzle ORM
+- Helmet enabled
+
+Objective:
+
+Build a secure Contact Us module with:
+1) Lead creation (store in contact_requests table)
+2) Gmail SMTP email notification
+3) Customer thank-you email
+4) Google reCAPTCHA v3 verification
+5) Rate limiting + honeypot
+6) Production-ready security
+7) No admin dashboard
+8) Do NOT break existing architecture
+9) This new functionality should work with language toggles
+10) should not miss any of the mentioned objectives
+
+=========================================================
+SECTION 1: DATABASE UPDATE
+=========================================================
+
+Modify table: contact_requests
+
+Fields:
+
+- id (uuid primary key)
+- full_name (varchar 150, NOT NULL)
+- email (varchar 150, NOT NULL)
+- phone (varchar 20, nullable)
+- city (varchar 100, nullable)
+- interest_type (enum NOT NULL)
+
+  ENUM values:
+  - health_insurance
+  - term_insurance
+  - retirement_planning
+  - child_plan
+  - sme_insurance
+  - general_query
+
+- message (text NOT NULL)
+- consent_given (boolean NOT NULL)
+- ip_address (varchar 50)
+- user_agent (text)
+- created_at (timestamp default now)
+
+Add index:
+- created_at
+- interest_type
+
+Generate:
+- Updated Drizzle schema
+- Migration file
+
+=========================================================
+SECTION 2: REQUIRED ENV VARIABLES
+=========================================================
+
+For SMTP:
+
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=465
+SMTP_USER=hanvitt.advisors@gmail.com
+SMTP_PASS=your_gmail_app_password
+SMTP_FROM="Hanvitt Advisors <hanvitt.advisors@gmail.com>"
+
+For reCAPTCHA:
+
+VITE_RECAPTCHA_SITE_KEY=
+RECAPTCHA_SECRET_KEY=
+
+=========================================================
+SECTION 3: FRONTEND – CONTACT PAGE
+=========================================================
+
+Create:
+/client/pages/ContactUs.tsx
+
+---------------------------------------------------------
+DESIGN
+---------------------------------------------------------
+
+Adjust to existing Contact page
+Max width: 600px
+Rounded 2xl
+Soft shadow
+Dark mode compatible
+
+Header:
+"Let’s Secure Your Financial Future."
+
+---------------------------------------------------------
+FORM FIELDS
+---------------------------------------------------------
+
+- Full Name * (required)
+- Email * (required)
+- Phone (optional)
+- City (optional)
+- What are you interested in? (Dropdown required)
+
+Dropdown options:
+- Health Insurance
+- Term Insurance
+- Retirement Planning
+- Child Plan
+- SME Insurance
+- General Query
+
+- Message * (required)
+- Consent Checkbox (required)
+
+Text:
+"I agree to be contacted by Hanvitt Advisors regarding my query."
+
+Submit Button:
+"Request Free Consultation"
+
+---------------------------------------------------------
+FEATURES
+---------------------------------------------------------
+
+- Zod validation
+- Allow upto 30 characters in Full Name field
+- Email validation
+- Phone validation, strict to indian numbers
+- show validation errors next to field
+- Framer Motion fade animation
+- Loading spinner
+- Disable button while submitting
+- Success toast
+- Error toast
+- Reset form after success
+
+Hidden honeypot field:
+<input type="text" name="website" style="display:none" />
+
+=========================================================
+SECTION 4: reCAPTCHA v3 FRONTEND
+=========================================================
+
+Install:
+react-google-recaptcha-v3
+
+Wrap app in:
+
+<GoogleReCaptchaProvider reCaptchaKey={import.meta.env.VITE_RECAPTCHA_SITE_KEY}>
+
+On submit:
+
+const token = await executeRecaptcha('contact_form_submit');
+
+Send token in API request as:
+recaptcha_token
+
+=========================================================
+SECTION 5: BACKEND ROUTE
+=========================================================
+
+POST /api/contact
+
+Validate with Zod:
+
+{
+  full_name: string
+  email: valid email
+  phone: optional
+  city: optional
+  interest_type: enum
+  message: string (min 10)
+  consent_given: must be true
+  recaptcha_token: string
+}
+
+Security Requirements:
+
+- Rate limit 5 per hour per IP
+- Verify honeypot empty
+- Sanitize inputs
+- Escape HTML
+- Limit body size
+- No stack traces in response
+
+=========================================================
+SECTION 6: reCAPTCHA VERIFICATION SERVICE
+=========================================================
+
+Create:
+server/services/recaptchaService.ts
+
+Verify with:
+
+POST https://www.google.com/recaptcha/api/siteverify
+
+Body:
+secret=RECAPTCHA_SECRET_KEY
+response=recaptcha_token
+
+Validation rules:
+
+- success === true
+- score >= 0.5
+- action === "contact_form_submit"
+
+If verification fails:
+- Reject request
+- Do NOT save to DB
+- Do NOT send email
+
+=========================================================
+SECTION 7: EMAIL SERVICE
+=========================================================
+
+Create:
+server/services/emailService.ts
+
+Use Nodemailer:
+
+secure: true (port 465)
+
+---------------------------------------------------------
+ADMIN EMAIL
+---------------------------------------------------------
+
+To: hanvitt.advisors@gmail.com
+Subject: "New Contact Request – Hanvitt Advisors"
+
+Include:
+
+Name
+Email
+Phone
+City
+Interest
+Message
+Timestamp
+IP
+
+---------------------------------------------------------
+CUSTOMER THANK YOU EMAIL
+---------------------------------------------------------
+
+Subject:
+"Thank You for Contacting Hanvitt Advisors"
+
+Body:
+
+Dear {Full Name},
+
+Thank you for reaching out regarding {interest_type}.
+Our team will contact you shortly.
+
+Visit: https://hanvitt.in
+
+Regards,
+Team Hanvitt Advisors
+
+If email sending fails:
+- Log error
+- Do NOT expose failure to user
+
+=========================================================
+SECTION 8: PROCESS FLOW
+=========================================================
+
+1) Validate input
+2) Verify reCAPTCHA
+3) If valid:
+   - Insert into contact_requests
+   - Send admin email
+   - Send customer email
+4) Return success response
+
+Response:
+
+{
+  success: true,
+  message: "Thank you for contacting Hanvitt Advisors."
+}
+
+=========================================================
+SECTION 9: SECURITY HARDENING
+=========================================================
+
+Ensure:
+
+- Helmet middleware active
+- Strict CSP
+- No inline scripts
+- SQL injection safe via ORM
+- Input sanitization
+- No logging of secrets
+- reCAPTCHA score not exposed
+- HTTPS required in production
+- Timeout for Google verification (5 sec)
+
+=========================================================
+SECTION 10: TESTING
+=========================================================
+
+Unit Tests:
+
+- Zod validation
+- reCAPTCHA mock verification
+- Email mock service
+
+Integration Tests:
+
+- Valid submission saved
+- Missing consent rejected
+- Invalid reCAPTCHA rejected
+- Rate limit triggered
+- Honeypot blocked
+
+E2E Test:
+
+- User fills form
+- Submission saved
+- Email triggered
+- Success message displayed
+
+=========================================================
+SECTION 11: README UPDATE
+=========================================================
+
+Document:
+
+- How to create Gmail App Password
+- How to create reCAPTCHA keys
+- Required environment variables
+- How to test locally
+- How to deploy on Replit
+
+=========================================================
+FINAL OUTPUT
+=========================================================
+
+Generate:
+
+- Updated Drizzle schema
+- Migration
+- ContactUs.tsx
+- recaptchaService.ts
+- emailService.ts
+- API route
+- Validation schema
+- Tests
+- README instructions
+
+Ensure:
+
+- Clean TypeScript
+- Production ready
+- Secure
+- Performant
+- No admin panel
+- No CRM logic
+- No breaking changes
+
+END OF SCRIPT
+
+

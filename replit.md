@@ -31,7 +31,7 @@ Preferred communication style: Simple, everyday language.
 - `/fin-score` — Financial Health Score assessment (0-100) with gauge chart, breakdown bar chart, personalized recommendations, plus integrated Health Insurance (family floater for self+spouse+children, separate senior citizen plan for parents) and Term Insurance recommendation engine (HLV method, per-lakh premium rates, city tier and age multipliers, 8% medical inflation projection)
 - `/retirement-planner` — AI-powered Retirement Planning with deterministic calculations (SIP FV, inflation-adjusted expenses, corpus calculation, PMT solver), year-by-year projections, readiness gauge, and Hugging Face AI insights (risk assessment, savings advice, asset allocation, behavioral tips). Indian financial context (PPF, NPS, ELSS). Rate-limited AI endpoint (50 req/15min), 15s timeout with fallback.
 - `/info` — "The Tea" - Insurance education page with IRDAI metrics (4% penetration, 75% without health cover, ₹6,600 per capita premium), health & term insurance facts
-- `/contact` — WhatsApp and Call buttons for direct communication
+- `/contact` — Contact page with lead capture form (Full Name, Email, Phone, City, Interest Type dropdown, Message, Consent checkbox), Google reCAPTCHA v3 verification, honeypot spam protection, WhatsApp and Call buttons. Sends admin notification + customer thank-you emails via Gmail SMTP. Trilingual support (EN/HI/TE).
 
 ### Backend
 - **Runtime**: Node.js with Express
@@ -46,7 +46,8 @@ Preferred communication style: Simple, everyday language.
 - **Schema Location**: `shared/schema.ts` — single source of truth for both DB tables and Zod validation schemas
 - **Migrations**: Managed via `drizzle-kit push` (no migration files checked in by default, uses `migrations/` output dir)
 - **Tables**:
-  - `contact_requests` — stores contact form submissions (id, name, email, phone, message, is_read, created_at)
+  - `contact_requests` — stores contact form submissions (id, full_name, email, phone, city, interest_type, message, consent_given, ip_address, user_agent, created_at). Indexed on created_at and interest_type.
+  - `security_logs` — stores blocked malicious attempts (id, ip_address, attempt, created_at). Indexed on created_at and ip_address.
 
 ### Shared Layer (`shared/`)
 - `schema.ts` — Drizzle table definitions, insert schemas, and client-side calculator validation schemas (Zod)
@@ -60,24 +61,30 @@ Preferred communication style: Simple, everyday language.
 
 3. **Storage abstraction**: `server/storage.ts` defines an `IStorage` interface with a `DatabaseStorage` implementation, allowing the storage backend to be swapped if needed.
 
-4. **Single API endpoint**: The app currently has only one API endpoint (`POST /api/contact`). The route definition pattern in `shared/routes.ts` is designed to scale to more endpoints.
+4. **Multiple API endpoints**: `POST /api/contact` (lead capture with reCAPTCHA), `POST /api/retirement/calculate` (deterministic), `POST /api/retirement/ai-analysis` (Hugging Face AI).
 
 ## Security Hardening
 
+- **Helmet**: Uses `helmet` package for secure HTTP headers (X-Powered-By disabled, etc.). CSP managed separately.
 - **CORS**: Explicit allowlist-based CORS policy (no wildcards). Uses Replit domain env vars + optional `ALLOWED_ORIGINS`. Foreign-origin API requests are blocked.
-- **CSP**: Strict Content Security Policy blocking unauthorized scripts, frames, objects.
-- **Headers**: HSTS with preload, X-Content-Type-Options: nosniff, X-Frame-Options: DENY, Permissions-Policy, Referrer-Policy.
-- **Rate Limiting**: Contact form endpoint limited to 5 requests per 15 minutes per IP.
-- **Input Sanitization**: Server-side HTML stripping on all contact form inputs. Email templates use HTML entity escaping.
-- **Validation**: Zod schema validation on all API inputs with strict field length limits.
-- **Body Size Limit**: 100KB max on JSON and URL-encoded request bodies.
+- **CSP**: Strict Content Security Policy blocking unauthorized scripts, frames, objects. Allows Google reCAPTCHA domains.
+- **Headers**: HSTS with preload, X-Content-Type-Options: nosniff, X-Frame-Options: DENY, Permissions-Policy, Referrer-Policy. SameSite cookies.
+- **Rate Limiting**: Contact form limited to 10 requests per 15 minutes per IP. AI endpoint limited to 50 requests per 15 min.
+- **reCAPTCHA v3**: Google reCAPTCHA v3 verification on contact form with score >= 0.5 threshold and action validation. Honeypot field for additional bot protection.
+- **Malicious Pattern Blocking**: Server-side regex detection of SQL injection (DROP TABLE, SELECT *, INSERT INTO, ' OR 1=1, etc.), XSS (<script>, javascript:, onerror=, etc.), and email header injection (BCC:, CC:, newlines). Blocked attempts logged to security_logs table.
+- **Input Sanitization**: Server-side HTML stripping + newline removal on all contact form inputs. Email templates use HTML entity escaping.
+- **Validation**: Zod schema validation on all API inputs with strict field length limits (fullName 2-50, email max 30, message 10-1000, city max 20).
+- **Body Size Limit**: 10KB max on JSON and URL-encoded request bodies.
 - **Parameterized Queries**: All DB queries via Drizzle ORM (no raw SQL).
-- **Logging**: API response logging only captures message field (no user data).
-- **Secrets**: All sensitive config via environment variables/secrets. `.env` files in `.gitignore`.
-- **Email Config**: `EMAIL_FROM`, `EMAIL_TO` via env vars. SMTP credentials (`SMTP_USER`, `SMTP_PASS`) expected as secrets when configured.
+- **Logging**: API response logging only captures message field (no user data). Security events logged to DB.
+- **Secrets**: All sensitive config via environment variables/secrets. Production startup aborts if critical env vars missing (DATABASE_URL, RECAPTCHA_SECRET_KEY, SMTP_USER, SMTP_PASS).
+- **Email**: Gmail SMTP (port 465 SSL) for admin notifications and customer thank-you emails. Config via `SMTP_HOST`, `SMTP_PORT`, `SMTP_FROM` env vars. Credentials via `SMTP_USER`, `SMTP_PASS` secrets. Email failures are logged but never exposed to user. Email header injection blocked.
+- **Process Safety**: Unhandled rejections and uncaught exceptions are caught and logged. In production, uncaught exceptions trigger process exit.
 
 ## External Dependencies
 
 - **PostgreSQL**: Required. Connection via `DATABASE_URL` environment variable. Used with `pg` (node-postgres) driver and Drizzle ORM.
 - **Google Fonts**: Loaded via CDN for Space Grotesk and Inter font families.
-- **No external APIs**: The application does not currently call any third-party APIs, though the build script bundles support for OpenAI, Stripe, Google Generative AI, and Nodemailer (suggesting planned future integrations).
+- **Google reCAPTCHA v3**: Used for contact form bot protection. Site key via `VITE_RECAPTCHA_SITE_KEY` env var, secret key via `RECAPTCHA_SECRET_KEY` secret.
+- **Hugging Face API**: Used for AI retirement planning insights. API key via `HUGGINGFACE_API_KEY` secret.
+- **Gmail SMTP**: Used for admin notification and customer thank-you emails via Nodemailer.

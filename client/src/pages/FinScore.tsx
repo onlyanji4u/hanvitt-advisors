@@ -44,10 +44,16 @@ interface InsuranceRec {
   hasParentsCover: boolean;
 }
 
+const blockNonNumericKeys = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  if (['e', 'E', '+', '-', '.'].includes(e.key)) {
+    e.preventDefault();
+  }
+};
+
 const clampedSetter = (setter: (v: string) => void, min: number, max: number) => (e: React.ChangeEvent<HTMLInputElement>) => {
-  const raw = e.target.value;
+  const raw = e.target.value.replace(/[^0-9]/g, '');
   if (raw === '') { setter(''); return; }
-  const num = parseFloat(raw);
+  const num = parseInt(raw, 10);
   if (isNaN(num)) return;
   if (num > max) { setter(String(max)); return; }
   if (num < min && raw.length > 1) { setter(String(min)); return; }
@@ -437,7 +443,7 @@ export default function FinScore() {
                 <CardContent className="p-4 sm:p-6 pt-0 space-y-4">
                   <div className="space-y-2">
                     <Label className="text-sm font-semibold" style={{ color: 'var(--text-secondary)' }}>{t('score.age')}</Label>
-                    <Input type="number" value={age} onChange={clampedSetter(setAge, 18, 100)} placeholder="30" min={18} max={100} style={inputStyle} className="placeholder:opacity-40" data-testid="input-age" />
+                    <Input type="number" value={age} onChange={clampedSetter(setAge, 18, 100)} onKeyDown={blockNonNumericKeys} placeholder="30" min={18} max={100} style={inputStyle} className="placeholder:opacity-40" data-testid="input-age" />
                   </div>
 
                   <div className="space-y-2">
@@ -463,25 +469,25 @@ export default function FinScore() {
                     {hasSpouse && (
                       <div className="space-y-2">
                         <Label className="text-sm font-semibold" style={{ color: 'var(--text-secondary)' }}>{t('ins.health.spouseAge')}</Label>
-                        <Input type="number" value={spouseAge} onChange={clampedSetter(setSpouseAge, 18, 100)} placeholder="28" min={18} max={100} style={inputStyle} className="placeholder:opacity-40" data-testid="input-spouse-age" />
+                        <Input type="number" value={spouseAge} onChange={clampedSetter(setSpouseAge, 18, 100)} onKeyDown={blockNonNumericKeys} placeholder="28" min={18} max={100} style={inputStyle} className="placeholder:opacity-40" data-testid="input-spouse-age" />
                       </div>
                     )}
 
                     <div className="grid grid-cols-2 gap-3">
                       <div className="space-y-2">
                         <Label className="text-sm font-semibold" style={{ color: 'var(--text-secondary)' }}>{t('ins.health.children')}</Label>
-                        <Input type="number" value={numChildren} onChange={clampedSetter(setNumChildren, 0, 6)} placeholder="0" min={0} max={6} style={inputStyle} className="placeholder:opacity-40" data-testid="input-children" />
+                        <Input type="number" value={numChildren} onChange={clampedSetter(setNumChildren, 0, 6)} onKeyDown={blockNonNumericKeys} placeholder="0" min={0} max={6} style={inputStyle} className="placeholder:opacity-40" data-testid="input-children" />
                       </div>
                       <div className="space-y-2">
                         <Label className="text-sm font-semibold" style={{ color: 'var(--text-secondary)' }}>{t('ins.health.parents')}</Label>
-                        <Input type="number" value={numParents} onChange={clampedSetter(setNumParents, 0, 4)} placeholder="0" min={0} max={4} style={inputStyle} className="placeholder:opacity-40" data-testid="input-parents" />
+                        <Input type="number" value={numParents} onChange={clampedSetter(setNumParents, 0, 4)} onKeyDown={blockNonNumericKeys} placeholder="0" min={0} max={4} style={inputStyle} className="placeholder:opacity-40" data-testid="input-parents" />
                       </div>
                     </div>
 
                     {(parseInt(numParents) || 0) > 0 && (
                       <div className="space-y-2">
                         <Label className="text-sm font-semibold" style={{ color: 'var(--text-secondary)' }}>{t('ins.health.parentAge')}</Label>
-                        <Input type="number" value={eldestParentAge} onChange={clampedSetter(setEldestParentAge, 40, 100)} placeholder="60" min={40} max={100} style={inputStyle} className="placeholder:opacity-40" data-testid="input-parent-age" />
+                        <Input type="number" value={eldestParentAge} onChange={clampedSetter(setEldestParentAge, 40, 100)} onKeyDown={blockNonNumericKeys} placeholder="60" min={40} max={100} style={inputStyle} className="placeholder:opacity-40" data-testid="input-parent-age" />
                       </div>
                     )}
                   </div>
@@ -495,7 +501,7 @@ export default function FinScore() {
                   ].map(({ label, value, setter, placeholder, testId, min, max }) => (
                     <div key={testId} className="space-y-1">
                       <Label className="text-sm font-semibold" style={{ color: 'var(--text-secondary)' }}>{label}</Label>
-                      <Input type="number" value={value} onChange={clampedSetter(setter, min, max)} placeholder={placeholder} min={min} max={max} style={inputStyle} className="placeholder:opacity-40" data-testid={testId} />
+                      <Input type="number" value={value} onChange={clampedSetter(setter, min, max)} onKeyDown={blockNonNumericKeys} placeholder={placeholder} min={min} max={max} style={inputStyle} className="placeholder:opacity-40" data-testid={testId} />
                       {amountToWords(value) && <p className="text-[10px] text-[#D4AF37]/70 font-medium" data-testid={`${testId}-words`}>{amountToWords(value)}</p>}
                     </div>
                   ))}
@@ -510,7 +516,7 @@ export default function FinScore() {
                   {hasHealthInsurance === true && (
                     <div className="space-y-1 pl-3 border-l-2 border-emerald-500/30">
                       <Label className="text-sm font-semibold" style={{ color: 'var(--text-secondary)' }}>{t('ins.existing.healthCover')}</Label>
-                      <Input type="number" value={existingHealthCover} onChange={clampedSetter(setExistingHealthCover, 0, 100000000)} placeholder="500000" min={0} max={100000000} style={inputStyle} className="placeholder:opacity-40" data-testid="input-existing-health-cover" />
+                      <Input type="number" value={existingHealthCover} onChange={clampedSetter(setExistingHealthCover, 0, 100000000)} onKeyDown={blockNonNumericKeys} placeholder="500000" min={0} max={100000000} style={inputStyle} className="placeholder:opacity-40" data-testid="input-existing-health-cover" />
                       {amountToWords(existingHealthCover) && <p className="text-[10px] text-[#D4AF37]/70 font-medium">{amountToWords(existingHealthCover)}</p>}
                       <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{t('ins.existing.healthHint')}</p>
                     </div>
@@ -526,7 +532,7 @@ export default function FinScore() {
                   {hasLifeInsurance === true && (
                     <div className="space-y-1 pl-3 border-l-2 border-blue-500/30">
                       <Label className="text-sm font-semibold" style={{ color: 'var(--text-secondary)' }}>{t('ins.existing.termCover')}</Label>
-                      <Input type="number" value={existingTermCover} onChange={clampedSetter(setExistingTermCover, 0, 1000000000)} placeholder="5000000" min={0} max={1000000000} style={inputStyle} className="placeholder:opacity-40" data-testid="input-existing-term-cover" />
+                      <Input type="number" value={existingTermCover} onChange={clampedSetter(setExistingTermCover, 0, 1000000000)} onKeyDown={blockNonNumericKeys} placeholder="5000000" min={0} max={1000000000} style={inputStyle} className="placeholder:opacity-40" data-testid="input-existing-term-cover" />
                       {amountToWords(existingTermCover) && <p className="text-[10px] text-[#D4AF37]/70 font-medium">{amountToWords(existingTermCover)}</p>}
                       <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{t('ins.existing.termHint')}</p>
                     </div>

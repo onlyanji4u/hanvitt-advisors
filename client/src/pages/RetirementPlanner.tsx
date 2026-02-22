@@ -103,13 +103,18 @@ export default function RetirementPlanner() {
     legendColor: theme === "light" ? "rgba(26,35,50,0.7)" : "#ffffff60",
   };
 
+  const blockNonNumericKeys = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (['e', 'E', '+', '-', '.'].includes(e.key)) {
+      e.preventDefault();
+    }
+  };
+
   const handleNumberInput =
     (setter: (val: string) => void, max: number = 1000000000) =>
     (e: React.ChangeEvent<HTMLInputElement>) => {
-      const rawVal = e.target.value;
+      const rawVal = e.target.value.replace(/[^0-9]/g, '');
       if (rawVal === "") { setter(""); return; }
-      const sanitized = DOMPurify.sanitize(rawVal);
-      const val = parseFloat(sanitized);
+      const val = parseInt(rawVal, 10);
       if (!isNaN(val)) {
         setter(String(Math.min(Math.max(0, val), max)));
       }
@@ -232,19 +237,19 @@ export default function RetirementPlanner() {
 
               <div className="space-y-1">
                 <Label style={{ color: "var(--text-secondary)" }}>{t("retirement.form.monthlyExpenses")} (₹)</Label>
-                <Input type="number" value={monthlyExpenses} onChange={handleNumberInput(setMonthlyExpenses, 100000000)} style={{ background: "var(--glass-bg)", borderColor: "var(--border-subtle)", color: "var(--text-primary)" }} className="font-mono" data-testid="input-monthly-expenses" />
+                <Input type="number" value={monthlyExpenses} onChange={handleNumberInput(setMonthlyExpenses, 100000000)} onKeyDown={blockNonNumericKeys} style={{ background: "var(--glass-bg)", borderColor: "var(--border-subtle)", color: "var(--text-primary)" }} className="font-mono" data-testid="input-monthly-expenses" />
                 {amountToWords(monthlyExpenses) && <p className="text-[10px] text-[#D4AF37]/70 font-medium">{amountToWords(monthlyExpenses)}</p>}
               </div>
 
               <div className="space-y-1">
                 <Label style={{ color: "var(--text-secondary)" }}>{t("retirement.form.currentSavings")} (₹)</Label>
-                <Input type="number" value={currentSavings} onChange={handleNumberInput(setCurrentSavings)} style={{ background: "var(--glass-bg)", borderColor: "var(--border-subtle)", color: "var(--text-primary)" }} className="font-mono" data-testid="input-current-savings" />
+                <Input type="number" value={currentSavings} onChange={handleNumberInput(setCurrentSavings)} onKeyDown={blockNonNumericKeys} style={{ background: "var(--glass-bg)", borderColor: "var(--border-subtle)", color: "var(--text-primary)" }} className="font-mono" data-testid="input-current-savings" />
                 {amountToWords(currentSavings) && <p className="text-[10px] text-[#D4AF37]/70 font-medium">{amountToWords(currentSavings)}</p>}
               </div>
 
               <div className="space-y-1">
                 <Label style={{ color: "var(--text-secondary)" }}>{t("retirement.form.monthlySIP")} (₹)</Label>
-                <Input type="number" value={monthlySIP} onChange={handleNumberInput(setMonthlySIP, 100000000)} style={{ background: "var(--glass-bg)", borderColor: "var(--border-subtle)", color: "var(--text-primary)" }} className="font-mono" data-testid="input-monthly-sip" />
+                <Input type="number" value={monthlySIP} onChange={handleNumberInput(setMonthlySIP, 100000000)} onKeyDown={blockNonNumericKeys} style={{ background: "var(--glass-bg)", borderColor: "var(--border-subtle)", color: "var(--text-primary)" }} className="font-mono" data-testid="input-monthly-sip" />
                 {amountToWords(monthlySIP) && <p className="text-[10px] text-[#D4AF37]/70 font-medium">{amountToWords(monthlySIP)}</p>}
               </div>
 
