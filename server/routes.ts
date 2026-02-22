@@ -3,22 +3,52 @@ import type { Server } from "http";
 import { storage } from "./storage";
 import { api } from "@shared/routes";
 import { z } from "zod";
-import nodemailer from "nodemailer";
 import rateLimit from "express-rate-limit";
 import { calculateRetirement } from "./services/retirementEngine";
 import { getAIRetirementAnalysis } from "./services/aiRetirementAdvisor";
-
-function escapeHtml(str: string): string {
-  return str
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
-}
+import { verifyRecaptcha } from "./services/recaptchaService";
+import { sendAdminNotification, sendCustomerThankYou } from "./services/emailService";
+import { encryptIfAvailable } from "./services/encryption";
 
 function sanitizeInput(str: string): string {
-  return str.replace(/<[^>]*>/g, "").trim();
+  return str
+    .replace(/<[^>]*>/g, "")
+    .replace(/[\r\n]/g, " ")
+    .trim();
+}
+
+const MALICIOUS_PATTERNS = [
+  /DROP\s+TABLE/i,
+  /SELECT\s+\*/i,
+  /INSERT\s+INTO/i,
+  /DELETE\s+FROM/i,
+  /UNION\s+SELECT/i,
+  /--\s/,
+  /;\s*$/,
+  /'\s*OR\s+\d+=\d+/i,
+  /<script\b/i,
+  /<\/script>/i,
+  /javascript:/i,
+  /onerror\s*=/i,
+  /onload\s*=/i,
+  /onclick\s*=/i,
+  /onmouseover\s*=/i,
+  /eval\s*\(/i,
+  /document\.cookie/i,
+  /window\.location/i,
+];
+
+function containsMaliciousPattern(value: string): string | null {
+  for (const pattern of MALICIOUS_PATTERNS) {
+    if (pattern.test(value)) {
+      return pattern.source;
+    }
+  }
+  return null;
+}
+
+function hasEmailInjection(value: string): boolean {
+  return /[\r\n]/.test(value) || /BCC:/i.test(value) || /CC:/i.test(value) || /Content-Type:/i.test(value);
 }
 
 export async function registerRoutes(
@@ -67,12 +97,12 @@ export async function registerRoutes(
 
     const csp = [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.google.com https://www.gstatic.com https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/",
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "font-src 'self' https://fonts.gstatic.com",
-      "img-src 'self' data: blob:",
-      "connect-src 'self'",
-      "frame-src 'none'",
+      "img-src 'self' data: blob: https://www.gstatic.com",
+      "connect-src 'self' https://www.google.com https://www.gstatic.com https://www.google.com/recaptcha/",
+      "frame-src https://www.google.com https://www.gstatic.com https://www.google.com/recaptcha/",
       "frame-ancestors 'none'",
       "object-src 'none'",
       "base-uri 'self'",
@@ -87,68 +117,96 @@ export async function registerRoutes(
     res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
     res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=()");
     res.removeHeader("X-Powered-By");
+
+    if (req.path.startsWith("/api") && req.method === "POST") {
+      const ct = req.headers["content-type"] || "";
+      if (!ct.includes("application/json")) {
+        return res.status(415).json({ message: "Unsupported content type." });
+      }
+    }
+
     next();
   });
 
   const contactLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 5,
+    max: 10,
     standardHeaders: true,
     legacyHeaders: false,
     message: { message: "Too many requests. Please try again after 15 minutes." },
   });
 
   app.post(api.contact.create.path, contactLimiter, async (req, res) => {
+    const clientIp = (req.ip || req.socket.remoteAddress || "unknown").substring(0, 50);
+
     try {
-      const raw = api.contact.create.input.parse(req.body);
-      const input = {
-        name: sanitizeInput(raw.name),
-        email: sanitizeInput(raw.email),
-        phone: raw.phone ? sanitizeInput(raw.phone) : undefined,
-        message: sanitizeInput(raw.message),
-      };
-
-      const result = await storage.createContactRequest(input);
-
-      try {
-        const transporter = nodemailer.createTransport({
-          host: process.env.SMTP_HOST || "smtp.gmail.com",
-          port: parseInt(process.env.SMTP_PORT || "465"),
-          secure: true, 
-          auth: {
-            user: process.env.SMTP_USER,
-            pass: process.env.SMTP_PASS,
-          },
-        });
-
-        const safeName = escapeHtml(input.name);
-        const safeEmail = escapeHtml(input.email);
-        const safePhone = escapeHtml(input.phone || "N/A");
-        const safeMessage = escapeHtml(input.message);
-
-        const mailOptions = {
-          from: process.env.EMAIL_FROM || `"Hanvitt Advisors" <hanvitt.advisors@gmail.com>`,
-          to: process.env.EMAIL_TO || "hanvitt.advisors@gmail.com",
-          subject: `New Consultation Request from ${safeName}`,
-          text: `Name: ${input.name}\nEmail: ${input.email}\nPhone: ${input.phone || "N/A"}\nMessage: ${input.message}`,
-          html: `<h3>New Consultation Request</h3><p><strong>Name:</strong> ${safeName}</p><p><strong>Email:</strong> ${safeEmail}</p><p><strong>Phone:</strong> ${safePhone}</p><p><strong>Message:</strong> ${safeMessage}</p>`,
-        };
-
-        transporter.sendMail(mailOptions).catch(err => {
-          console.error("Email notification failed:", err);
-        });
-      } catch (emailErr) {
-        console.error("Transporter setup failed:", emailErr);
+      if (req.body.website) {
+        return res.status(200).json({ success: true, message: "Thank you for contacting Hanvitt Advisors." });
       }
 
-      res.status(201).json({ id: result.id, message: "Request submitted successfully" });
+      const body = req.body;
+      const fieldsToCheck = [body.fullName, body.email, body.phone, body.city, body.message].filter(Boolean);
+      for (const field of fieldsToCheck) {
+        if (typeof field === "string") {
+          const matched = containsMaliciousPattern(field);
+          if (matched) {
+            storage.logSecurityEvent(clientIp, `Malicious pattern: ${matched} in value: ${field.substring(0, 100)}`).catch(() => {});
+            return res.status(400).json({ message: "Invalid input detected." });
+          }
+        }
+      }
+
+      if (body.email && typeof body.email === "string" && hasEmailInjection(body.email)) {
+        storage.logSecurityEvent(clientIp, `Email injection attempt: ${body.email.substring(0, 100)}`).catch(() => {});
+        return res.status(400).json({ message: "Invalid email format." });
+      }
+      if (body.fullName && typeof body.fullName === "string" && hasEmailInjection(body.fullName)) {
+        storage.logSecurityEvent(clientIp, `Header injection in name: ${body.fullName.substring(0, 100)}`).catch(() => {});
+        return res.status(400).json({ message: "Invalid name format." });
+      }
+
+      const raw = api.contact.create.input.parse(body);
+
+      const isHuman = await verifyRecaptcha(raw.recaptcha_token);
+      if (!isHuman) {
+        storage.logSecurityEvent(clientIp, "reCAPTCHA verification failed").catch(() => {});
+        return res.status(403).json({ message: "Verification failed. Please try again." });
+      }
+
+      const plainInput = {
+        fullName: sanitizeInput(raw.fullName),
+        email: sanitizeInput(raw.email),
+        phone: raw.phone ? sanitizeInput(raw.phone) : undefined,
+        city: raw.city ? sanitizeInput(raw.city) : undefined,
+        interestType: raw.interestType,
+        message: sanitizeInput(raw.message),
+        consentGiven: raw.consentGiven,
+        ipAddress: clientIp,
+        userAgent: (req.headers["user-agent"] || "").substring(0, 500),
+      };
+
+      const timestamp = new Date().toISOString();
+      sendAdminNotification({ ...plainInput, timestamp }).catch(() => {});
+      sendCustomerThankYou(plainInput.fullName, plainInput.email, plainInput.interestType).catch(() => {});
+
+      const dbInput = {
+        ...plainInput,
+        fullName: encryptIfAvailable(plainInput.fullName),
+        email: encryptIfAvailable(plainInput.email),
+        phone: plainInput.phone ? encryptIfAvailable(plainInput.phone) : undefined,
+      };
+
+      await storage.createContactRequest(dbInput);
+
+      res.status(201).json({ success: true, message: "Thank you for contacting Hanvitt Advisors." });
     } catch (err) {
       if (err instanceof z.ZodError) {
         return res.status(400).json({
           message: "Invalid input. Please check your form fields.",
         });
       }
-      throw err;
+      console.error("Contact form error:", err instanceof Error ? err.message : "unknown");
+      res.status(500).json({ message: "Something went wrong. Please try again." });
     }
   });
 
