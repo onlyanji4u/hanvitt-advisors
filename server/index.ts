@@ -138,6 +138,92 @@ app.use((req, res, next) => {
   };
   runPurge();
   setInterval(runPurge, PURGE_INTERVAL_MS);
+
+  const ADMIN_EMAIL = "hanvitt.advisors@gmail.com";
+  try {
+    const existing = await storage.getAdminByEmail(ADMIN_EMAIL);
+    if (!existing) {
+      await storage.createAdminUser(ADMIN_EMAIL);
+      log(`Admin user seeded: ${ADMIN_EMAIL}`);
+    }
+  } catch (err) {
+    console.error("Admin seed error:", err instanceof Error ? err.message : "unknown");
+  }
+
+  try {
+    const caTaxSetting = await storage.getSetting("ca_tax_enabled");
+    if (caTaxSetting === undefined) {
+      await storage.setSetting("ca_tax_enabled", "true");
+      log("Default setting seeded: ca_tax_enabled = true");
+    }
+  } catch (err) {
+    console.error("Settings seed error:", err instanceof Error ? err.message : "unknown");
+  }
+
+  // One-time seed: copy CA services & cross-sell offers if tables are empty
+  try {
+    const existingServices = await storage.getCaServices();
+    if (existingServices.length === 0) {
+      log("Seeding CA services...");
+      const servicesSeed = [
+        { serviceName: "Salaried ( Simple ITR-1)", description: "Individual", category: "ITR Filing", priceMin: "900.00", priceMax: "1499.00", frequency: "", isActive: true },
+        { serviceName: "Salaried + Capital Gains", description: "Individual", category: "ITR Filing", priceMin: "2500.00", priceMax: "5000.00", frequency: "", isActive: true },
+        { serviceName: "Freelancer / Consultant ITR", description: "Individual (1 source + business income)", category: "ITR Filing", priceMin: "3500.00", priceMax: "6000.00", frequency: "", isActive: true },
+        { serviceName: "Business Income ITR (Proprietor)", description: "Individual (Schedule C/Profit & Loss)", category: "ITR Filing", priceMin: "6000.00", priceMax: "12000.00", frequency: "", isActive: true },
+        { serviceName: "Tax Revision/Rectification", description: "Individual (Post-filing corrections)", category: "ITR Filing", priceMin: "1500.00", priceMax: "4000.00", frequency: "", isActive: true },
+        { serviceName: "NRI Filing", description: "Individual", category: "NRI Tax", priceMin: "5000.00", priceMax: "12000.00", frequency: "", isActive: true },
+        { serviceName: "Registration", description: "Individuals & Small Businesses", category: "GST", priceMin: "1500.00", priceMax: "3000.00", frequency: "One Time", isActive: true },
+        { serviceName: "GST Return Filing (GSTR-1, GSTR-3B)", description: "Individuals & Small Businesses", category: "GST", priceMin: "1999.00", priceMax: "3500.00", frequency: "Monthly / Quarterly", isActive: true },
+        { serviceName: "GST Annual Return", description: "Individuals & Small Businesses", category: "GST", priceMin: "3000.00", priceMax: "6000.00", frequency: "Annual", isActive: true },
+        { serviceName: "GST Notice Handling", description: "Individuals & Small Businesses", category: "GST", priceMin: "5000.00", priceMax: "15000.00", frequency: "Case basis", isActive: true },
+        { serviceName: "GST Audit Support", description: "Individuals & Small Businesses", category: "Audit", priceMin: "8000.00", priceMax: "20000.00", frequency: "Once per year", isActive: true },
+        { serviceName: "Proprietorship Registration", description: "Medium & Small Business", category: "Compliance", priceMin: "4000.00", priceMax: "8000.00", frequency: "One-Time", isActive: true },
+        { serviceName: "Private Ltd Company Registration", description: "Medium & Small Business", category: "Compliance", priceMin: "12000.00", priceMax: "25000.00", frequency: "One-Time", isActive: true },
+        { serviceName: "Shop & Establishment", description: "Medium & Small Business", category: "Compliance", priceMin: "1500.00", priceMax: "4000.00", frequency: "One-Time", isActive: true },
+      ];
+      const createdServiceMap: Record<string, string> = {};
+      for (const s of servicesSeed) {
+        const created = await storage.createCaService(s as any);
+        createdServiceMap[s.serviceName] = created.id;
+        log(`Seeded service: ${s.serviceName}`);
+      }
+
+      // Seed cross-sell offers
+      const simpleItrId = createdServiceMap["Salaried ( Simple ITR-1)"];
+      const capitalGainsId = createdServiceMap["Salaried + Capital Gains"];
+      if (simpleItrId) {
+        await storage.createCrossSellOffer({
+          triggerProduct: "term_insurance",
+          offerTitle: "Free ITR Filing",
+          offerDescription: "Buy ₹2 Cr Term Insurance → Get FREE Income Tax Filing!\nSecure your family. Save on taxes. Limited period benefit. Only at Hanvitt",
+          offerType: "free_service",
+          discountValue: null as any,
+          freeServiceId: simpleItrId,
+          isActive: true,
+          startDate: "2026-02-23",
+          endDate: "2026-07-31",
+        });
+        log("Seeded offer: Free ITR Filing");
+      }
+      if (capitalGainsId) {
+        await storage.createCrossSellOffer({
+          triggerProduct: "term_insurance",
+          offerTitle: "Salaried + Capital Gains",
+          offerDescription: "Buy ₹3 Cr Term Insurance → Get FREE Income Tax Filing along with Capital Gains calculations !\nSecure your family. Save on taxes. Limited period benefit.\nOnly at Hanvitt.",
+          offerType: "free_service",
+          discountValue: null as any,
+          freeServiceId: capitalGainsId,
+          isActive: true,
+          startDate: "2026-02-23",
+          endDate: "2026-07-31",
+        });
+        log("Seeded offer: Salaried + Capital Gains");
+      }
+      log("CA services & offers seed complete.");
+    }
+  } catch (err) {
+    console.error("CA services seed error:", err instanceof Error ? err.message : "unknown");
+  }
 })();
 
 process.on("unhandledRejection", (reason) => {

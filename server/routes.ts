@@ -1,5 +1,6 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import type { Server } from "http";
+import cookieParser from "cookie-parser";
 import { storage } from "./storage";
 import { api } from "@shared/routes";
 import { z } from "zod";
@@ -10,6 +11,7 @@ import { verifyRecaptcha } from "./services/recaptchaService";
 import { sendAdminNotification, sendCustomerThankYou } from "./services/emailService";
 import { encryptIfAvailable } from "./services/encryption";
 import { generateInsuranceGapPdf } from "./services/insuranceGapPdf";
+import adminRoutes from "./routes/adminRoutes";
 
 function sanitizeInput(str: string): string {
   return str
@@ -82,8 +84,8 @@ export async function registerRoutes(
       const allowed = buildAllowedOrigins();
       if (allowed.includes(origin)) {
         res.setHeader("Access-Control-Allow-Origin", origin);
-        res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-        res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+        res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+        res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
         res.setHeader("Access-Control-Max-Age", "86400");
       }
     }
@@ -119,7 +121,7 @@ export async function registerRoutes(
     res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=()");
     res.removeHeader("X-Powered-By");
 
-    if (req.path.startsWith("/api") && req.method === "POST") {
+    if (req.path.startsWith("/api") && ["POST", "PUT", "PATCH"].includes(req.method)) {
       const ct = req.headers["content-type"] || "";
       if (!ct.includes("application/json")) {
         return res.status(415).json({ message: "Unsupported content type." });
@@ -127,6 +129,42 @@ export async function registerRoutes(
     }
 
     next();
+  });
+
+  app.use(cookieParser());
+
+  app.use("/api/admin", adminRoutes);
+
+  app.get("/api/public/settings", async (_req, res) => {
+    try {
+      const settings = await storage.getAllSettings();
+      const map: Record<string, string> = {};
+      for (const s of settings) map[s.key] = s.value;
+      res.json(map);
+    } catch (err) {
+      console.error("Public settings error:", err instanceof Error ? err.message : "unknown");
+      res.status(500).json({ message: "Failed to fetch settings." });
+    }
+  });
+
+  app.get("/api/public/services", async (_req, res) => {
+    try {
+      const services = await storage.getCaServices(true);
+      res.json(services);
+    } catch (err) {
+      console.error("Public services error:", err instanceof Error ? err.message : "unknown");
+      res.status(500).json({ message: "Failed to fetch services." });
+    }
+  });
+
+  app.get("/api/public/offers", async (_req, res) => {
+    try {
+      const offers = await storage.getCrossSellOffers(true);
+      res.json(offers);
+    } catch (err) {
+      console.error("Public offers error:", err instanceof Error ? err.message : "unknown");
+      res.status(500).json({ message: "Failed to fetch offers." });
+    }
   });
 
   const contactLimiter = rateLimit({

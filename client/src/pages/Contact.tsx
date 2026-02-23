@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Navigation } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
 import { ScrollToTop } from "@/components/ScrollToTop";
@@ -16,15 +16,8 @@ import { useToast } from "@/hooks/use-toast";
 import { GoogleReCaptchaProvider, useGoogleReCaptcha } from "react-google-recaptcha-v3";
 import { motion } from "framer-motion";
 import { apiRequest } from "@/lib/queryClient";
-
-const interestTypes = [
-  "health_insurance",
-  "term_insurance",
-  "retirement_planning",
-  "child_plan",
-  "sme_insurance",
-  "general_query",
-] as const;
+import { interestTypes } from "@shared/schema";
+import { useSiteSettings } from "@/hooks/use-site-settings";
 
 export default function Contact() {
   const recaptchaKey = import.meta.env.VITE_RECAPTCHA_SITE_KEY || "";
@@ -42,6 +35,12 @@ function ContactForm() {
   const formSectionRef = useRef<HTMLDivElement>(null);
   const { executeRecaptcha } = useGoogleReCaptcha();
 
+  const { caTaxEnabled } = useSiteSettings();
+
+  const visibleInterestTypes = interestTypes.filter(
+    type => type !== "ca_tax_advisory" || caTaxEnabled
+  );
+
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -51,6 +50,30 @@ function ContactForm() {
   const [consentGiven, setConsentGiven] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [prefillInterest, setPrefillInterest] = useState("");
+
+  useEffect(() => {
+    try {
+      const stored = sessionStorage.getItem("ca_enquiry");
+      if (!stored) return;
+      sessionStorage.removeItem("ca_enquiry");
+      const data = JSON.parse(stored);
+      const interest = data.interest;
+
+      if (interest && visibleInterestTypes.includes(interest as any)) {
+        setInterestType(interest);
+        setPrefillInterest(interest);
+
+        const parts = [
+          data.serviceName ? `Service: ${data.serviceName}` : "",
+          data.category ? `Category: ${data.category}` : "",
+          data.description ? `Details: ${data.description}` : "",
+          data.frequency ? `Frequency: ${data.frequency}` : "",
+        ].filter(Boolean);
+        if (parts.length) setMessage(parts.join("\n"));
+      }
+    } catch {}
+  }, []);
 
   const clearError = (field: string) => {
     setErrors((prev) => {
@@ -271,12 +294,12 @@ function ContactForm() {
 
                   <div className="space-y-1.5">
                     <Label style={{ color: 'var(--text-secondary)' }} data-testid="label-interest">{t('contact.form.interest')} *</Label>
-                    <Select value={interestType} onValueChange={(v) => { setInterestType(v); clearError("interestType"); }}>
+                    <Select value={interestType} onValueChange={(v) => { setInterestType(v); clearError("interestType"); if (prefillInterest && v !== prefillInterest) { setMessage(""); setPrefillInterest(""); } }}>
                       <SelectTrigger style={inputStyle} data-testid="select-interest">
                         <SelectValue placeholder={t('contact.form.selectInterest')} />
                       </SelectTrigger>
                       <SelectContent>
-                        {interestTypes.map((type) => (
+                        {visibleInterestTypes.map((type) => (
                           <SelectItem key={type} value={type} data-testid={`option-${type}`}>
                             {t(`contact.interest.${type}`)}
                           </SelectItem>

@@ -1,10 +1,12 @@
 import { Link } from "wouter";
 import { ShieldCheck, Phone, Mail, MapPin } from "lucide-react";
 import { useLanguage } from "@/hooks/use-language";
+import { useSiteSettings } from "@/hooks/use-site-settings";
 import hanvittLogo from "@assets/IMG_1898_1771384571904.png";
 
 export function Footer() {
   const { t } = useLanguage();
+  const { caTaxEnabled } = useSiteSettings();
 
   const toolLinks = [
     { href: "/savings-lab", label: t('nav.savingsLab') },
@@ -32,7 +34,7 @@ export function Footer() {
           </div>
 
           <div>
-            <h4 className="font-bold text-xs uppercase tracking-widest text-[#D4AF37] mb-4">{t('footer.quickLinks')}</h4>
+            <h4 className="font-bold text-xs uppercase tracking-widest text-[#D4AF37] mb-4">{t('nav.insurance')}</h4>
             <div className="space-y-2">
               {toolLinks.map((link) => (
                 <Link key={link.href} href={link.href} className="block text-sm hover:text-[#D4AF37] transition-colors" style={{ color: 'var(--text-tertiary)' }}>
@@ -40,6 +42,19 @@ export function Footer() {
                 </Link>
               ))}
             </div>
+            {caTaxEnabled && (
+              <>
+                <h4 className="font-bold text-xs uppercase tracking-widest text-[#D4AF37] mb-3 mt-5">{t('nav.caTaxServices')}</h4>
+                <div className="space-y-2">
+                  <Link href="/ca-services" className="block text-sm hover:text-[#D4AF37] transition-colors" style={{ color: 'var(--text-tertiary)' }}>
+                    {t('nav.caServices')}
+                  </Link>
+                  <Link href="/ca-faq" className="block text-sm hover:text-[#D4AF37] transition-colors" style={{ color: 'var(--text-tertiary)' }} data-testid="link-ca-faq-footer">
+                    {t('nav.caFaq')}
+                  </Link>
+                </div>
+              </>
+            )}
           </div>
 
           <div>
@@ -74,6 +89,7 @@ export function Footer() {
 
         <div className="pt-8 text-center text-xs space-y-2" style={{ borderTop: '1px solid var(--border-subtle)', color: 'var(--text-muted)' }}>
           <p className="text-[#D4AF37]/40">{t('footer.disclaimer')}</p>
+          {caTaxEnabled && <p style={{ color: 'var(--text-tertiary)' }}>{t('footer.caDisclaimer')}</p>}
           <p>{t('footer.regulatory')}</p>
           <p>&copy; {new Date().getFullYear()} Hanvitt Advisors. {t('footer.rights')}</p>
         </div>

@@ -30,8 +30,11 @@ Preferred communication style: Simple, everyday language.
 - `/wealth-tracker` — Personal income/expense tracker with pie chart (by category) and bar chart (monthly trend), localStorage-backed
 - `/fin-score` — Financial Health Score assessment (0-100) with gauge chart, breakdown bar chart, personalized recommendations, plus integrated Health Insurance (family floater for self+spouse+children, separate senior citizen plan for parents) and Term Insurance recommendation engine (HLV method, per-lakh premium rates, city tier and age multipliers, 8% medical inflation projection)
 - `/retirement-planner` — AI-powered Retirement Planning with deterministic calculations (SIP FV, inflation-adjusted expenses, corpus calculation, PMT solver), year-by-year projections, readiness gauge, and Hugging Face AI insights (risk assessment, savings advice, asset allocation, behavioral tips). Indian financial context (PPF, NPS, ELSS). Rate-limited AI endpoint (50 req/15min), 15s timeout with fallback.
+- `/ca-services` — Public CA & Tax Advisory Services page showing active services by category with pricing, cross-sell offers banner, and enquiry links to contact page. Trilingual support.
+- `/admin` — Admin login page with OTP-based passwordless authentication (email + 6-digit OTP)
+- `/admin/dashboard` — Admin panel with tabs for: CA Services CRUD, Cross-Sell Offers CRUD, Audit Logs viewer
 - `/info` — "The Tea" - Insurance education page with IRDAI metrics (4% penetration, 75% without health cover, ₹6,600 per capita premium), health & term insurance facts
-- `/contact` — Contact page with lead capture form (Full Name, Email, Phone, City, Interest Type dropdown, Message, Consent checkbox), Google reCAPTCHA v3 verification, honeypot spam protection, WhatsApp and Call buttons. Sends admin notification + customer thank-you emails via Gmail SMTP. Trilingual support (EN/HI/TE).
+- `/contact` — Contact page with lead capture form (Full Name, Email, Phone, City, Interest Type dropdown including CA & Tax Advisory, Message, Consent checkbox), Google reCAPTCHA v3 verification, honeypot spam protection, WhatsApp and Call buttons. Sends admin notification + customer thank-you emails via Gmail SMTP. Trilingual support (EN/HI/TE).
 
 ### Backend
 - **Runtime**: Node.js with Express
@@ -48,6 +51,12 @@ Preferred communication style: Simple, everyday language.
 - **Tables**:
   - `contact_requests` — stores contact form submissions (id, full_name, email, phone, city, interest_type, message, consent_given, ip_address, user_agent, created_at). Indexed on created_at and interest_type.
   - `security_logs` — stores blocked malicious attempts (id, ip_address, attempt, created_at). Indexed on created_at and ip_address.
+  - `ca_services` — CA & Tax Advisory services (UUID id, service_name, description, category, price, is_active, created_at, updated_at). Indexed on category and is_active.
+  - `cross_sell_offers` — trigger-based promotional offers (UUID id, trigger_product, offer_title, offer_description, offer_type, discount_value, free_service_id, is_active, start_date, end_date, created_at). Indexed on trigger_product and is_active.
+  - `admin_users` — admin accounts for OTP login (UUID id, email, role, is_active, totp_secret, totp_enabled, created_at). Indexed on email. TOTP secret is AES-256-CBC encrypted.
+  - `admin_otps` — OTP tokens for admin authentication (UUID id, admin_id, otp_hash, expires_at, is_used, created_at). Indexed on admin_id and expires_at.
+  - `audit_logs` — admin action audit trail (UUID id, admin_id, action, entity, entity_id, timestamp). Indexed on admin_id and timestamp.
+  - `site_settings` — key-value site configuration (key varchar PK, value text, updated_at). Used for feature toggles like `ca_tax_enabled`.
 
 ### Shared Layer (`shared/`)
 - `schema.ts` — Drizzle table definitions, insert schemas, and client-side calculator validation schemas (Zod)
@@ -62,6 +71,14 @@ Preferred communication style: Simple, everyday language.
 3. **Storage abstraction**: `server/storage.ts` defines an `IStorage` interface with a `DatabaseStorage` implementation, allowing the storage backend to be swapped if needed.
 
 4. **Multiple API endpoints**: `POST /api/contact` (lead capture with reCAPTCHA), `POST /api/retirement/calculate` (deterministic), `POST /api/retirement/ai-analysis` (Hugging Face AI).
+
+5. **Admin authentication**: OTP-based passwordless login via email + optional TOTP 2FA. JWT access tokens (1h expiry) + refresh tokens (7d, httpOnly cookie). Admin routes protected by `adminAuthMiddleware`. OTP rate limited to 3 per 10 min per email + 10 auth requests per 15 min per IP. TOTP uses `otpauth` library with AES-256-CBC encrypted secrets.
+
+6. **Admin API routes** (`/api/admin/*`): Auth (request-otp, verify-otp, refresh, logout, me, totp/setup, totp/verify-setup, totp/disable, totp/status), CA Services CRUD, Cross-Sell Offers CRUD, Audit Logs, Security Logs & Stats. All admin mutations create audit log entries.
+
+7. **Security monitoring**: Admin dashboard "Security" tab shows blocked attack stats (total, last 24h), threat type breakdown (SQL Injection, XSS, Email Injection), top suspicious IPs, and full blocked attempt log.
+
+8. **Public API routes**: `GET /api/public/services` (active services only), `GET /api/public/offers` (active offers within date range).
 
 ## Security Hardening
 

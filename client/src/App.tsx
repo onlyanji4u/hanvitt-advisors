@@ -14,6 +14,10 @@ import Contact from "@/pages/Contact";
 import Info from "@/pages/Info";
 import RetirementPlanner from "@/pages/RetirementPlanner";
 import InsuranceGapGuide from "@/pages/InsuranceGapGuide";
+import CaServices from "@/pages/CaServices";
+import CaFaq from "@/pages/CaFaq";
+import AdminLogin from "@/pages/AdminLogin";
+import AdminDashboard from "@/pages/AdminDashboard";
 
 function ScrollToTop() {
   const [location] = useLocation();
@@ -32,8 +36,12 @@ function Router() {
       <Route path="/fin-score" component={FinScore} />
       <Route path="/retirement-planner" component={RetirementPlanner} />
       <Route path="/insurance-gap-guide" component={InsuranceGapGuide} />
+      <Route path="/ca-services" component={CaServices} />
+      <Route path="/ca-faq" component={CaFaq} />
       <Route path="/info" component={Info} />
       <Route path="/contact" component={Contact} />
+      <Route path="/admin" component={AdminLogin} />
+      <Route path="/admin/dashboard" component={AdminDashboard} />
       <Route component={NotFound} />
     </Switch>
   );

@@ -16,6 +16,8 @@ const interestLabels: Record<string, string> = {
   child_plan: "Child Plan",
   sme_insurance: "SME Insurance",
   general_query: "General Query",
+  insurance_gap_analysis: "Insurance Gap Analysis",
+  ca_tax_advisory: "CA & Tax Advisory",
 };
 
 function getTransporter() {
@@ -114,5 +116,37 @@ export async function sendCustomerThankYou(fullName: string, email: string, inte
     });
   } catch (err) {
     console.error("Customer thank-you email failed:", err instanceof Error ? err.message : "unknown");
+  }
+}
+
+export async function sendOtpEmail(email: string, otp: string): Promise<void> {
+  try {
+    const transporter = getTransporter();
+    const from = process.env.SMTP_FROM || `"Hanvitt Advisors" <hanvitt.advisors@gmail.com>`;
+
+    await transporter.sendMail({
+      from,
+      to: email,
+      subject: "Your Admin Login OTP – Hanvitt Advisors",
+      text: `Your one-time password is: ${otp}\n\nThis OTP expires in 5 minutes.\n\nIf you didn't request this, please ignore this email.\n\nRegards,\nHanvitt Advisors`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <div style="background: #1a2332; padding: 20px; text-align: center;">
+            <h2 style="color: #D4AF37; margin: 0;">Admin Login OTP</h2>
+          </div>
+          <div style="padding: 30px; background: #ffffff; text-align: center;">
+            <p style="font-size: 16px; color: #333;">Your one-time password is:</p>
+            <div style="background: #f4f4f4; border: 2px dashed #D4AF37; padding: 20px; margin: 20px auto; max-width: 200px; border-radius: 8px;">
+              <span style="font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #1a2332;">${escapeHtml(otp)}</span>
+            </div>
+            <p style="font-size: 14px; color: #777;">This OTP expires in <strong>5 minutes</strong>.</p>
+            <p style="font-size: 13px; color: #999; margin-top: 20px;">If you didn't request this, please ignore this email.</p>
+          </div>
+        </div>
+      `,
+    });
+  } catch (err) {
+    console.error("OTP email failed:", err instanceof Error ? err.message : "unknown");
+    throw new Error("Failed to send OTP email");
   }
 }

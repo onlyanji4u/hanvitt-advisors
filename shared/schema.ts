@@ -1,6 +1,7 @@
-import { pgTable, text, serial, timestamp, boolean, varchar, index } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, timestamp, boolean, varchar, index, numeric, date, uuid } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
+import { sql } from "drizzle-orm";
 
 export const interestTypes = [
   "health_insurance",
@@ -10,6 +11,7 @@ export const interestTypes = [
   "sme_insurance",
   "general_query",
   "insurance_gap_analysis",
+  "ca_tax_advisory",
 ] as const;
 
 export const contactRequests = pgTable("contact_requests", {
@@ -60,7 +62,150 @@ export const securityLogs = pgTable("security_logs", {
 
 export type SecurityLog = typeof securityLogs.$inferSelect;
 
-// Calculator Types (Client-side only, but useful for validation consistency if needed)
+// ==================== CA & TAX SERVICES ====================
+
+export const caServices = pgTable("ca_services", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  serviceName: varchar("service_name", { length: 200 }).notNull(),
+  description: text("description").notNull(),
+  category: varchar("category", { length: 100 }).notNull(),
+  priceMin: numeric("price_min", { precision: 10, scale: 2 }).notNull(),
+  priceMax: numeric("price_max", { precision: 10, scale: 2 }),
+  frequency: varchar("frequency", { length: 50 }),
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("idx_ca_services_category").on(table.category),
+  index("idx_ca_services_active").on(table.isActive),
+]);
+
+export const insertCaServiceSchema = createInsertSchema(caServices).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+}).extend({
+  serviceName: z.string().min(2).max(200),
+  description: z.string().min(5).max(2000),
+  category: z.string().min(2).max(100),
+  priceMin: z.string().regex(/^\d+(\.\d{1,2})?$/, "Invalid price format"),
+  priceMax: z.string().regex(/^\d+(\.\d{1,2})?$/, "Invalid price format").optional().or(z.literal("")),
+  frequency: z.string().max(50).optional().or(z.literal("")),
+  isActive: z.boolean().optional().default(true),
+});
+
+export type CaService = typeof caServices.$inferSelect;
+export type InsertCaService = z.infer<typeof insertCaServiceSchema>;
+
+// ==================== CROSS-SELL OFFERS ====================
+
+export const offerTypes = ["free_service", "percentage", "flat_discount"] as const;
+
+export const crossSellOffers = pgTable("cross_sell_offers", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  triggerProduct: varchar("trigger_product", { length: 100 }).notNull(),
+  offerTitle: varchar("offer_title", { length: 200 }).notNull(),
+  offerDescription: text("offer_description").notNull(),
+  offerType: varchar("offer_type", { length: 50 }).notNull(),
+  discountValue: numeric("discount_value", { precision: 10, scale: 2 }),
+  freeServiceId: uuid("free_service_id"),
+  isActive: boolean("is_active").default(true).notNull(),
+  startDate: date("start_date").notNull(),
+  endDate: date("end_date").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("idx_cross_sell_trigger").on(table.triggerProduct),
+  index("idx_cross_sell_active").on(table.isActive),
+]);
+
+export const insertCrossSellOfferSchema = createInsertSchema(crossSellOffers).omit({
+  id: true,
+  createdAt: true,
+}).extend({
+  triggerProduct: z.string().min(2).max(100),
+  offerTitle: z.string().min(2).max(200),
+  offerDescription: z.string().min(5).max(2000),
+  offerType: z.enum(offerTypes),
+  discountValue: z.string().regex(/^\d+(\.\d{1,2})?$/).nullable().optional(),
+  freeServiceId: z.string().uuid().nullable().optional(),
+  isActive: z.boolean().optional().default(true),
+  startDate: z.string(),
+  endDate: z.string(),
+});
+
+export type CrossSellOffer = typeof crossSellOffers.$inferSelect;
+export type InsertCrossSellOffer = z.infer<typeof insertCrossSellOfferSchema>;
+
+// ==================== ADMIN USERS ====================
+
+export const adminUsers = pgTable("admin_users", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  email: varchar("email", { length: 255 }).notNull().unique(),
+  role: varchar("role", { length: 50 }).default("admin").notNull(),
+  isActive: boolean("is_active").default(true).notNull(),
+  totpSecret: varchar("totp_secret", { length: 512 }),
+  totpEnabled: boolean("totp_enabled").default(false).notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("idx_admin_email").on(table.email),
+]);
+
+export type AdminUser = typeof adminUsers.$inferSelect;
+
+// ==================== ADMIN OTPS ====================
+
+export const adminOtps = pgTable("admin_otps", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  adminId: uuid("admin_id").notNull(),
+  otpHash: varchar("otp_hash", { length: 255 }).notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+  isUsed: boolean("is_used").default(false).notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("idx_otp_admin").on(table.adminId),
+  index("idx_otp_expires").on(table.expiresAt),
+]);
+
+export type AdminOtp = typeof adminOtps.$inferSelect;
+
+// ==================== AUDIT LOGS ====================
+
+export const auditLogs = pgTable("audit_logs", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  adminId: uuid("admin_id").notNull(),
+  action: varchar("action", { length: 100 }).notNull(),
+  entity: varchar("entity", { length: 100 }).notNull(),
+  entityId: uuid("entity_id"),
+  timestamp: timestamp("timestamp").defaultNow(),
+}, (table) => [
+  index("idx_audit_admin").on(table.adminId),
+  index("idx_audit_timestamp").on(table.timestamp),
+]);
+
+export type AuditLog = typeof auditLogs.$inferSelect;
+
+// ==================== SITE SETTINGS ====================
+
+export const siteSettings = pgTable("site_settings", {
+  key: varchar("key", { length: 100 }).primaryKey(),
+  value: text("value").notNull(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export type SiteSetting = typeof siteSettings.$inferSelect;
+
+// ==================== ADMIN AUTH SCHEMAS ====================
+
+export const requestOtpSchema = z.object({
+  email: z.string().email("Invalid email").max(255),
+});
+
+export const verifyOtpSchema = z.object({
+  email: z.string().email("Invalid email").max(255),
+  otp: z.string().length(6, "OTP must be 6 digits").regex(/^\d{6}$/, "OTP must be numeric"),
+});
+
+// Calculator Types (Client-side only)
 export const savingsCalculatorSchema = z.object({
   initialAmount: z.number().min(0),
   monthlyContribution: z.number().min(0),
@@ -82,7 +227,6 @@ export const dimeCalculatorSchema = z.object({
   assets: z.number().min(0),
 });
 
-// Retirement Calculator Input Schema
 export const retirementCalculatorSchema = z.object({
   currentAge: z.number().min(18).max(80),
   retirementAge: z.number().min(30).max(85),

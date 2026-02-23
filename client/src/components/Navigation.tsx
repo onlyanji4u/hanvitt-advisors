@@ -4,14 +4,17 @@ import { Menu, X, Phone, ChevronDown, Sun, Moon } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLanguage } from "@/hooks/use-language";
 import { useTheme } from "@/hooks/use-theme";
+import { useSiteSettings } from "@/hooks/use-site-settings";
 import hanvittLogo from "@assets/IMG_1898_1771384571904.png";
 
 export function Navigation() {
   const [isOpen, setIsOpen] = useState(false);
   const [toolsOpen, setToolsOpen] = useState(false);
+  const [caDropdownOpen, setCaDropdownOpen] = useState(false);
   const [location] = useLocation();
   const { language, setLanguage, t } = useLanguage();
   const { theme, toggleTheme } = useTheme();
+  const { caTaxEnabled } = useSiteSettings();
 
   const toolLinks = [
     { href: "/savings-lab", label: t('nav.savingsLab') },
@@ -21,7 +24,13 @@ export function Navigation() {
     { href: "/insurance-gap-guide", label: t('nav.insuranceGapGuide') },
   ];
 
+  const caLinks = [
+    { href: "/ca-services", label: t('nav.caServices') },
+    { href: "/ca-faq", label: t('nav.caFaq') },
+  ];
+
   const isToolPage = toolLinks.some(l => l.href === location);
+  const isCaPage = caLinks.some(l => l.href === location);
 
   const isDark = theme === 'dark';
 
@@ -44,8 +53,8 @@ export function Navigation() {
           </Link>
 
           <div className="relative" onMouseEnter={() => setToolsOpen(true)} onMouseLeave={() => setToolsOpen(false)}>
-            <button className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors flex items-center gap-1 ${isToolPage ? "bg-primary/10" : "hover:bg-primary/5"}`} style={{ color: isToolPage ? '#D4AF37' : 'var(--text-secondary)' }} data-testid="button-tools-dropdown">
-              {t('nav.tools')}
+            <button className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors flex items-center gap-1 ${isToolPage ? "bg-primary/10" : "hover:bg-primary/5"}`} style={{ color: isToolPage ? '#D4AF37' : 'var(--text-secondary)' }} data-testid="button-insurance-dropdown">
+              {t('nav.insurance')}
               <ChevronDown className="h-3 w-3" />
             </button>
             <AnimatePresence>
@@ -73,6 +82,40 @@ export function Navigation() {
               )}
             </AnimatePresence>
           </div>
+
+          {caTaxEnabled && (
+            <div className="relative" onMouseEnter={() => setCaDropdownOpen(true)} onMouseLeave={() => setCaDropdownOpen(false)}>
+              <button className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors flex items-center gap-1 ${isCaPage ? "bg-primary/10" : "hover:bg-primary/5"}`} style={{ color: isCaPage ? '#D4AF37' : 'var(--text-secondary)' }} data-testid="button-ca-dropdown">
+                {t('nav.caTaxServices')}
+                <ChevronDown className="h-3 w-3" />
+              </button>
+              <AnimatePresence>
+                {caDropdownOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -5, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -5, scale: 0.95 }}
+                    transition={{ duration: 0.15 }}
+                    className="absolute top-full left-0 mt-1 w-56 rounded-xl shadow-2xl py-2 z-50"
+                    style={{ background: 'var(--page-bg-alt)', border: '1px solid var(--border-subtle)' }}
+                  >
+                    {caLinks.map((link) => (
+                      <Link
+                        key={link.href}
+                        href={link.href}
+                        className="block px-4 py-2.5 text-sm font-medium transition-colors hover:bg-primary/5"
+                        style={{ color: location === link.href ? '#D4AF37' : 'var(--text-secondary)' }}
+                        onClick={() => setCaDropdownOpen(false)}
+                        data-testid={link.href === '/ca-faq' ? 'link-ca-faq' : undefined}
+                      >
+                        {link.label}
+                      </Link>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          )}
 
           <Link href="/info" className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${location === '/info' ? "bg-primary/10" : "hover:bg-primary/5"}`} style={{ color: location === '/info' ? '#D4AF37' : 'var(--text-secondary)' }}>
             {t('nav.info')}
@@ -157,7 +200,7 @@ export function Navigation() {
               <Link href="/" onClick={() => setIsOpen(false)} className={`block px-3 py-3 text-sm font-medium rounded-lg ${location === '/' ? "bg-primary/10" : ""}`} style={{ color: location === '/' ? '#D4AF37' : 'var(--text-muted)' }}>
                 {t('nav.home')}
               </Link>
-              <div className="px-3 py-2 text-[10px] uppercase tracking-widest font-bold" style={{ color: 'var(--text-tertiary)' }}>{t('nav.tools')}</div>
+              <div className="px-3 py-2 text-[10px] uppercase tracking-widest font-bold" style={{ color: 'var(--text-tertiary)' }}>{t('nav.insurance')}</div>
               {toolLinks.map((link) => (
                 <Link
                   key={link.href}
@@ -169,6 +212,23 @@ export function Navigation() {
                   {link.label}
                 </Link>
               ))}
+              {caTaxEnabled && (
+                <>
+                  <div className="px-3 py-2 text-[10px] uppercase tracking-widest font-bold mt-2" style={{ color: 'var(--text-tertiary)' }}>{t('nav.caTaxServices')}</div>
+                  {caLinks.map((link) => (
+                    <Link
+                      key={link.href}
+                      href={link.href}
+                      onClick={() => setIsOpen(false)}
+                      className={`block px-3 py-3 pl-6 text-sm font-medium rounded-lg ${location === link.href ? "bg-primary/10" : ""}`}
+                      style={{ color: location === link.href ? '#D4AF37' : 'var(--text-tertiary)' }}
+                      data-testid={link.href === '/ca-faq' ? 'link-ca-faq-mobile' : undefined}
+                    >
+                      {link.label}
+                    </Link>
+                  ))}
+                </>
+              )}
               <Link href="/info" onClick={() => setIsOpen(false)} className={`block px-3 py-3 text-sm font-medium rounded-lg ${location === '/info' ? "bg-primary/10" : ""}`} style={{ color: location === '/info' ? '#D4AF37' : 'var(--text-muted)' }}>
                 {t('nav.info')}
               </Link>

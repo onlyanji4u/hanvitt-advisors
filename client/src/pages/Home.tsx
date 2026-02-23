@@ -1,12 +1,15 @@
 import { Link } from "wouter";
 import { motion } from "framer-motion";
-import { ArrowRight, CheckCircle, TrendingUp, Shield, BarChart3, Wallet, Award, Lock, ShieldCheck, Clock, Phone, Calculator, Sparkles, Zap, Target, Eye, HeartPulse } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { ArrowRight, CheckCircle, TrendingUp, Shield, BarChart3, Wallet, Award, Lock, ShieldCheck, Clock, Phone, Calculator, Sparkles, Zap, Target, Eye, HeartPulse, Tag } from "lucide-react";
 import { Navigation } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
 import { ScrollToTop } from "@/components/ScrollToTop";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useLanguage } from "@/hooks/use-language";
+import { useSiteSettings } from "@/hooks/use-site-settings";
+import type { CrossSellOffer } from "@shared/schema";
 
 const fadeUp = {
   initial: { opacity: 0, y: 30 },
@@ -14,8 +17,29 @@ const fadeUp = {
   transition: { duration: 0.6 }
 };
 
+function OffersBanner() {
+  const { data: offers = [] } = useQuery<CrossSellOffer[]>({
+    queryKey: ['/api/public/offers'],
+  });
+  if (!Array.isArray(offers) || offers.length === 0) return null;
+  const allOffers = [...offers, ...offers, ...offers];
+  return (
+    <div className="overflow-hidden py-2" style={{ background: 'linear-gradient(90deg, #D4AF37, #f0d060, #D4AF37)' }}>
+      <div className="marquee-track gap-8">
+        {allOffers.map((o, i) => (
+          <Link key={`${o.id}-${i}`} href="/ca-services" className="inline-flex items-center gap-2 px-6 text-sm font-bold text-black whitespace-nowrap" data-testid={`link-offer-banner-${o.id}-${i}`}>
+            <Tag className="h-3.5 w-3.5" />
+            {o.offerTitle}: {o.offerType === 'free_service' ? 'FREE' : o.offerType === 'percentage' ? `${o.discountValue}% OFF` : `₹${o.discountValue} OFF`}
+          </Link>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function Home() {
   const { t } = useLanguage();
+  const { caTaxEnabled } = useSiteSettings();
 
   const tools = [
     { icon: TrendingUp, title: t('nav.savingsLab'), description: t('savings.desc'), link: '/savings-lab', gradient: 'from-blue-500 to-cyan-400' },
@@ -51,6 +75,7 @@ export default function Home() {
   return (
     <div className="min-h-screen flex flex-col noise-bg" style={{ background: 'var(--page-bg)' }}>
       <Navigation />
+      {caTaxEnabled && <OffersBanner />}
 
       <section className="relative py-10 sm:py-14 lg:py-20 overflow-hidden">
         <div className="absolute top-1/4 -left-32 w-96 h-96 bg-[#D4AF37]/5 rounded-full blur-[120px]" />
@@ -64,7 +89,7 @@ export default function Home() {
               className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#D4AF37]/10 border border-[#D4AF37]/20 text-xs text-[#D4AF37] font-bold uppercase tracking-widest mb-5"
             >
               <ShieldCheck className="h-3.5 w-3.5" />
-              IRDAI Registered
+              IRDAI Registered{caTaxEnabled && " · CA-Assisted Tax & Compliance Services"}
             </motion.div>
 
             <motion.h1
@@ -85,7 +110,7 @@ export default function Home() {
               className="text-base sm:text-lg md:text-xl mb-6 max-w-2xl leading-relaxed"
               style={{ color: 'var(--text-secondary)' }}
             >
-              {t('hero.description')}
+              {caTaxEnabled ? t('hero.description') : t('hero.description.noTax')}
             </motion.p>
 
             <motion.div

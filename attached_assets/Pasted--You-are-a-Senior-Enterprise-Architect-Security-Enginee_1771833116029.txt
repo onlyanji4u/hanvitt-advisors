@@ -1,0 +1,310 @@
+
+
+You are a Senior Enterprise Architect, Security Engineer and DevOps Specialist.
+
+Upgrade the existing Hanvitt Advisors website to include:
+
+1) CA & Tax Advisory Services
+2) Cross-Sell Offer Engine
+3) Admin Panel with OTP-Based Login (Email OTP)
+4) Dynamic Pricing & Offer Configuration
+5) Enterprise-Grade Security Hardening
+
+==========================================================
+SECTION 1: DATABASE DESIGN (PostgreSQL)
+==========================================================
+
+Create tables:
+
+1. ca_services
+--------------------------------------------------
+id (uuid primary key)
+service_name (varchar)
+description (text)
+category (varchar)
+price (numeric)
+is_active (boolean default true)
+created_at (timestamp)
+updated_at (timestamp)
+
+2. cross_sell_offers
+--------------------------------------------------
+id (uuid primary key)
+trigger_product (varchar) 
+offer_title (varchar)
+offer_description (text)
+offer_type (varchar) -- free_service / percentage / flat_discount
+discount_value (numeric nullable)
+free_service_id (uuid nullable)
+is_active (boolean default true)
+start_date (date)
+end_date (date)
+created_at (timestamp)
+
+3. admin_users
+--------------------------------------------------
+id (uuid primary key)
+email (varchar unique)
+role (varchar default 'admin')
+is_active (boolean default true)
+created_at (timestamp)
+
+4. admin_otps
+--------------------------------------------------
+id (uuid primary key)
+admin_id (uuid references admin_users)
+otp_code (varchar)
+expires_at (timestamp)
+is_used (boolean default false)
+created_at (timestamp)
+
+5. audit_logs
+--------------------------------------------------
+id (uuid primary key)
+admin_id (uuid)
+action (varchar)
+entity (varchar)
+entity_id (uuid)
+timestamp (timestamp)
+
+==========================================================
+SECTION 2: OTP-BASED ADMIN AUTHENTICATION
+==========================================================
+
+Flow:
+
+STEP 1:
+Admin enters email at:
+POST /api/admin/request-otp
+
+System:
+- Validate email exists
+- Generate 6-digit numeric OTP
+- Store hashed OTP (bcrypt)
+- Expiry = 5 minutes
+- Send OTP via SMTP
+- Rate limit: 3 requests per 10 minutes per email
+
+STEP 2:
+Admin verifies OTP:
+POST /api/admin/verify-otp
+
+System:
+- Validate OTP
+- Check expiry
+- Check not used
+- Mark OTP as used
+- Generate JWT access token (1 hour)
+- Generate refresh token (7 days)
+
+STEP 3:
+JWT Middleware:
+Protect:
+- /api/admin/*
+- Admin dashboard routes
+
+==========================================================
+SECTION 3: SECURITY HARDENING
+==========================================================
+
+Implement:
+
+- Helmet
+- CSRF protection
+- CORS allowlist
+- Rate limiting (login, APIs)
+- Zod validation
+- Parameterized SQL queries
+- XSS sanitization
+- Secure cookies (httpOnly, sameSite=strict)
+- Refresh token rotation
+- Admin IP whitelist (optional)
+- Audit logging on all admin actions
+- Environment-based config
+
+==========================================================
+SECTION 4: ADMIN PANEL ROUTES
+==========================================================
+
+Frontend Routes:
+
+/admin/login
+/admin/verify-otp
+/admin/dashboard
+/admin/ca-services
+/admin/cross-sell
+
+Backend APIs:
+
+POST   /api/admin/request-otp
+POST   /api/admin/verify-otp
+POST   /api/admin/logout
+
+CA SERVICES:
+GET    /api/ca-services
+POST   /api/admin/ca-services
+PUT    /api/admin/ca-services/:id
+DELETE /api/admin/ca-services/:id
+
+CROSS SELL:
+GET    /api/cross-sell
+POST   /api/admin/cross-sell
+PUT    /api/admin/cross-sell/:id
+DELETE /api/admin/cross-sell/:id
+
+All admin routes require JWT middleware.
+
+==========================================================
+SECTION 5: CA & TAX ADVISORY PAGE
+==========================================================
+
+Create route:
+
+/ca-tax-advisory
+
+Sections:
+
+1. Hero
+Headline: "Retail CA & Tax Advisory Services"
+CTA: Book Consultation
+
+2. Services Grid
+Fetch:
+GET /api/ca-services
+
+Display:
+- Service Name
+- Price
+- Category
+- Description
+- Book Now button
+
+3. Cross-Sell Banner
+If user purchased term_insurance:
+Check active cross-sell
+Display:
+"🎉 You’re eligible for FREE ITR Filing"
+
+4. FAQs Section
+- Who should file ITR?
+- Which ITR form applies?
+- GST filing frequency?
+- Documents required?
+- Is consultation included?
+
+==========================================================
+SECTION 6: CROSS SELL ENGINE LOGIC
+==========================================================
+
+When a user purchases:
+Term Insurance → store in session/local storage
+
+On CA page:
+Call GET /api/cross-sell
+If:
+- trigger_product matches
+- is_active = true
+- current date within validity
+
+Then:
+Apply:
+- Free service OR
+- Percentage discount OR
+- Flat discount
+
+Admin controls:
+- Offer activation
+- Validity period
+- Discount value
+- Service mapping
+
+==========================================================
+SECTION 7: HOMEPAGE UPDATES
+==========================================================
+Sub header update - “Insurance. Tax Advisory. Wealth Protection — All Under One Roof.”
+
+Header Navigation:
+Add:
+"CA & Tax Advisory"
+
+Rolling Banner:
+Dynamically show active offer:
+"Free Income Tax Filing with Term Insurance"
+
+Footer Quick Links:
+- CA & Tax Services
+- Income Tax Filing
+- GST Registration
+- Tax Planning
+
+==========================================================
+SECTION 8: SMTP CONFIGURATION (FOR OTP)
+==========================================================
+
+Use Nodemailer.
+
+ENV VARIABLES:
+
+DATABASE_URL=
+JWT_SECRET=
+REFRESH_TOKEN_SECRET=
+SMTP_HOST=
+SMTP_PORT=
+SMTP_USER=
+SMTP_PASS=
+NODE_ENV=production
+FRONTEND_URL=
+
+If using Gmail:
+Use App Password.
+Secure TLS enabled.
+
+==========================================================
+SECTION 9: PRICING CONFIGURATION
+==========================================================
+
+Admin can set pricing dynamically:
+
+Examples:
+Basic ITR: ₹999–1499
+Business ITR: ₹3999+
+GST Filing: ₹1999/month
+Tax Planning: ₹2500/hour
+
+==========================================================
+SECTION 10: UI DESIGN STANDARDS
+==========================================================
+
+Use:
+- shadcn/ui Cards
+- Data Tables
+- Modal forms
+- Clean enterprise layout
+- Responsive
+- Professional branding
+- Dark/light mode support
+
+
+==========================================================
+DELIVERABLE
+==========================================================
+
+Generate:
+
+- Full backend structure
+- Frontend components
+- Admin OTP login
+- Secure middleware
+- Database migration scripts
+- Production-ready deployment setup
+
+Code must be:
+Secure.
+Scalable.
+Enterprise-grade.
+Modular.
+Cleanly structured.
+Production optimized.
+
+END OF MASTER PROMPT
+
