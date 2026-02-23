@@ -1,0 +1,274 @@
+You are a senior full-stack TypeScript engineer building an enterprise-grade AI-powered Retirement Planning system for Hanvitt Advisors.
+
+The system must be:
+• Secure (OWASP compliant)
+• Deterministic for calculations
+• AI-assisted for insights
+• Fully tested (Unit + Integration + E2E)
+• Production-ready
+
+----------------------------------------------------
+EXISTING STACK (DO NOT MODIFY)
+----------------------------------------------------
+
+Frontend:
+• React 18 + TypeScript
+• Vite
+• Wouter
+• shadcn/ui (Radix-based components)
+• Tailwind CSS
+• Recharts
+• Framer Motion
+• React Hook Form + Zod
+
+Backend:
+• Node.js + Express
+• TypeScript (tsx runtime)
+• REST API architecture
+• PostgreSQL (Neon)
+• Drizzle ORM
+
+----------------------------------------------------
+MODULES TO BUILD
+----------------------------------------------------
+
+1) Retirement Calculator (Deterministic Engine)
+2) Retirement Planner (Advanced Simulation)
+3) AI Retirement Recommendation Engine
+4) Secure PDF + Report Generator
+5) Full Testing Suite
+6) Security Hardened Middleware
+
+----------------------------------------------------
+CRITICAL ARCHITECTURE RULE
+----------------------------------------------------
+
+Financial calculations MUST be deterministic and NOT depend on AI.
+
+AI layer must ONLY:
+• Interpret results
+• Provide insights
+• Suggest optimization strategies
+• Provide advisory-style explanations
+• Never generate raw financial numbers
+
+----------------------------------------------------
+AI POWERED RETIREMENT RECOMMENDATION ENGINE
+----------------------------------------------------
+
+Create:
+
+/server/services/aiRetirementAdvisor.ts
+
+AI should analyze:
+
+• Shortfall or surplus
+• Savings rate %
+• Retirement gap
+• Risk profile
+• Inflation exposure
+• Withdrawal sustainability
+
+AI should generate:
+
+{
+  riskAssessment: string,
+  savingsImprovementAdvice: string,
+  inflationProtectionAdvice: string,
+  assetAllocationSuggestion: string,
+  retirementReadinessScore: number (0–100),
+  behavioralAdvice: string
+}
+
+----------------------------------------------------
+AI BEHAVIOR CONSTRAINTS
+----------------------------------------------------
+
+• AI cannot override calculated numbers
+• AI cannot promise returns
+• AI must include disclaimer:
+  "This is an educational estimate. Please consult Hanvitt Advisors."
+
+• AI must operate in structured JSON mode
+• Use temperature low (0.2)
+• Use token limit guard
+
+----------------------------------------------------
+AI API ENDPOINT
+----------------------------------------------------
+
+POST /api/retirement/ai-analysis
+
+Input:
+{
+  calculationResult: DeterministicResultObject,
+  userProfile: {
+     riskTolerance: "low" | "moderate" | "high",
+     incomeRange?: string,
+     goalPriority?: string
+  }
+}
+
+Output:
+{
+  recommendations: AIRecommendationObject
+}
+
+----------------------------------------------------
+SECURITY REQUIREMENTS (MANDATORY)
+----------------------------------------------------
+
+1) Zod validation (frontend + backend)
+2) Rate limiting on AI endpoint (50 req / 15 min)
+3) Helmet with strict CSP
+4) CORS allowlist
+5) Input sanitization
+6) No stack traces in prod
+7) Mask sensitive data in logs
+8) IP hashing before storage
+9) Max request body limit
+10) Timeout handling for AI calls
+11) Fallback safe message if AI fails
+
+----------------------------------------------------
+RETIREMENT ENGINE (DETERMINISTIC)
+----------------------------------------------------
+
+Implement pure financial functions:
+
+• Future value of SIP
+• Inflation adjusted expenses
+• Required corpus using annuity formula
+• Year-by-year projection loop
+• Solve PMT from corpus gap
+• Retirement sustainability calculation
+
+All inside:
+
+/server/services/retirementEngine.ts
+
+Must include:
+• 100% unit test coverage
+• Boundary case handling
+• Zero return case handling
+• High inflation stress test
+
+----------------------------------------------------
+FRONTEND AI INTEGRATION
+----------------------------------------------------
+
+On results page:
+
+Add section:
+“AI Retirement Insights”
+
+Use:
+• shadcn Card
+• Framer Motion fade-in
+• Loading skeleton
+• Recharts readiness score gauge (0–100)
+• Expandable advisory cards
+
+Add:
+• “Improve My Plan” button
+• “Book Consultation” CTA
+
+----------------------------------------------------
+E2E TESTING (Playwright)
+----------------------------------------------------
+
+Create:
+
+/e2e/retirement-ai.spec.ts
+
+Test scenarios:
+
+• Complete retirement calculation
+• Trigger AI recommendation
+• Verify recommendation appears
+• Verify ₹ formatting
+• Test invalid inputs
+• Test rate limit
+• Test mobile viewport
+• Test PDF download
+
+----------------------------------------------------
+PERFORMANCE REQUIREMENTS
+----------------------------------------------------
+
+• AI call timeout: 5 seconds max
+• Calculation < 50ms
+• Lazy load AI section
+• No blocking UI thread
+
+----------------------------------------------------
+DATABASE (OPTIONAL)
+----------------------------------------------------
+
+Table:
+retirement_sessions
+
+Fields:
+• id
+• input_json
+• result_json
+• ai_json
+• ip_hash
+• created_at
+
+----------------------------------------------------
+PDF REPORT
+----------------------------------------------------
+
+PDF must include:
+
+• Input summary
+• Key metrics
+• Chart snapshot
+• AI insights section
+• Disclaimer footer
+• Hanvitt branding
+
+Generate server-side only.
+
+----------------------------------------------------
+ENVIRONMENT VARIABLES
+----------------------------------------------------
+
+AI_API_KEY=
+FRONTEND_URL=
+NODE_ENV=
+RATE_LIMIT_WINDOW=
+RATE_LIMIT_MAX=
+
+----------------------------------------------------
+DELIVERABLE FORMAT
+----------------------------------------------------
+
+Provide:
+
+1) Full file structure
+2) Backend code
+3) Frontend code
+4) AI integration service
+5) Security middleware
+6) Unit tests
+7) Integration tests
+8) Playwright E2E tests
+9) Deployment steps
+10) README
+
+----------------------------------------------------
+IMPORTANT RULES
+----------------------------------------------------
+
+• Strict TypeScript (no any)
+• No raw SQL
+• No financial hallucination from AI
+• All ₹ formatting via Intl.NumberFormat("en-IN")
+• Production ready
+• Clean architecture
+• Clear comments explaining math
+• Secure error handling
+
+Start implementation now.

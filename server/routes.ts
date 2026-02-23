@@ -9,6 +9,7 @@ import { getAIRetirementAnalysis } from "./services/aiRetirementAdvisor";
 import { verifyRecaptcha } from "./services/recaptchaService";
 import { sendAdminNotification, sendCustomerThankYou } from "./services/emailService";
 import { encryptIfAvailable } from "./services/encryption";
+import { generateInsuranceGapPdf } from "./services/insuranceGapPdf";
 
 function sanitizeInput(str: string): string {
   return str
@@ -243,6 +244,15 @@ export async function registerRoutes(
       }
       console.error("AI analysis error:", err instanceof Error ? err.message : "unknown");
       res.status(500).json({ message: "AI analysis unavailable. Please try again later." });
+    }
+  });
+
+  app.get('/api/insurance-gap/pdf', (_req, res) => {
+    try {
+      generateInsuranceGapPdf(res);
+    } catch (err) {
+      console.error("PDF generation error:", err instanceof Error ? err.message : "unknown");
+      res.status(500).json({ message: "Failed to generate PDF. Please try again." });
     }
   });
 

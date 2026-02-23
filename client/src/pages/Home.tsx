@@ -1,6 +1,6 @@
 import { Link } from "wouter";
 import { motion } from "framer-motion";
-import { ArrowRight, CheckCircle, TrendingUp, Shield, BarChart3, Wallet, Award, Lock, ShieldCheck, Clock, Phone, Calculator, Sparkles, Zap, Target, Eye } from "lucide-react";
+import { ArrowRight, CheckCircle, TrendingUp, Shield, BarChart3, Wallet, Award, Lock, ShieldCheck, Clock, Phone, Calculator, Sparkles, Zap, Target, Eye, HeartPulse } from "lucide-react";
 import { Navigation } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
 import { ScrollToTop } from "@/components/ScrollToTop";
@@ -22,6 +22,7 @@ export default function Home() {
     { icon: Wallet, title: t('nav.wealthTracker'), description: t('wealth.desc'), link: '/wealth-tracker', gradient: 'from-orange-500 to-amber-400' },
     { icon: Award, title: t('nav.finScore'), description: t('score.desc'), link: '/fin-score', gradient: 'from-rose-500 to-red-400' },
     { icon: Target, title: t('nav.retirementPlanner'), description: t('retirement.desc'), link: '/retirement-planner', gradient: 'from-emerald-500 to-teal-400' },
+    { icon: HeartPulse, title: t('nav.insuranceGapGuide'), description: t('igap.heroDesc'), link: '/insurance-gap-guide', gradient: 'from-pink-500 to-rose-400' },
   ];
 
   const marqueeTools = [...tools, ...tools, ...tools];
@@ -31,6 +32,7 @@ export default function Home() {
     { icon: Wallet, title: t('showcase.wealth.tagline'), desc: t('showcase.wealth.desc'), link: '/wealth-tracker', accent: '#f59e0b' },
     { icon: Award, title: t('showcase.score.tagline'), desc: t('showcase.score.desc'), link: '/fin-score', accent: '#f43f5e' },
     { icon: Target, title: t('showcase.retirement.tagline'), desc: t('showcase.retirement.desc'), link: '/retirement-planner', accent: '#10b981' },
+    { icon: HeartPulse, title: t('showcase.igap.tagline'), desc: t('showcase.igap.desc'), link: '/insurance-gap-guide', accent: '#ec4899' },
   ];
 
   const securityItems = [
@@ -138,7 +140,7 @@ export default function Home() {
             <p className="max-w-xl mx-auto text-sm sm:text-base" style={{ color: 'var(--text-tertiary)' }}>{t('tools.description')}</p>
           </motion.div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
             {bentoFeatures.map((item, idx) => (
               <motion.div
                 key={idx}

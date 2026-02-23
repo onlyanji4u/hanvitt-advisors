@@ -1,0 +1,110 @@
+CONTACT PAGE SECURITY HARDENING 
+OBJECTIVE 
+Upgrade and harden the existing Hanvitt Contact Page (Node.js + Express + PostgreSQL) to financial-industry security standards. Enhance the current application. Do NOT rebuild it. 
+Protect against: 
+- SQL Injection 
+- XSS (Cross-Site Scripting) 
+- CSRF 
+- Bot submissions 
+- Brute force attacks 
+- Email header injection 
+- Malicious payloads 
+- Oversized request abuse 
+- Stack trace leakage 
+- SMTP abuse 
+- Secret exposure 
+TECH STACK 
+Node.js, Express, PostgreSQL, Nodemailer, reCAPTCHA v3 
+1. INSTALL REQUIRED PACKAGES (if any packages already available then ignore them)
+helmet, express-rate-limit, xss-clean, validator, axios, cookie-parser, 
+csurf, nodemailer, dotenv, pg 
+2. ENVIRONMENT SECURITY 
+Move ALL secrets to environment variables(If its already in environment variables then ignore them)
+DATABASE_URL 
+SMTP_HOST 
+SMTP_PORT 
+SMTP_USER 
+SMTP_PASS 
+RECAPTCHA_SECRET 
+NODE_ENV 
+Abort server startup if missing. 
+3. GLOBAL SECURITY MIDDLEWARE 
+- Helmet with X-Powered-By disabled 
+- CSP (allow self + google.com for reCAPTCHA) 
+- JSON body limit = 10kb 
+- SameSite=strict cookies 
+- Secure cookies in production 
+- CSRF protection 
+- Rate limit: 10 requests / 15 mins per IP (Contact API) 
+4. DATABASE SECURITY 
+- Parameterized queries only 
+- No string concatenation 
+- SSL in production 
+- Index on created_at 
+- No DB errors exposed 
+Tables: 
+contact_requests:
+id, full_name, email, phone, city, interest, message, consent, ip_address, user_agent, created_at 
+security_logs: 
+id, ip_address, attempt, created_at 
+5. STRICT INPUT VALIDATION 
+full_name: 2–50 chars 
+email: valid format , length upto 30
+phone: valid Indian number (if provided) 
+message: 10–1000 chars 
+consent: must be true 
+Reject empty/unexpected/invalid fields. 
+6. MALICIOUS PATTERN BLOCKING 
+Block: 
+DROP TABLE, SELECT *, INSERT INTO, DELETE FROM, --, ; <script>, </script>, javascript:, onerror=, onload= Log IP + payload. Do not crash. Do not expose stack trace. 
+7. SQL INJECTION PROTECTION 
+Prepared statements only. Reject: 
+' OR 1=1 -- 
+DROP TABLE contact_requests; 
+8. reCAPTCHA v3 VALIDATION 
+Verify server-side. success=true and score >= 0.5 
+9. EMAIL SECURITY 
+- Block newline characters 
+- Prevent header injection 
+- Sanitize message 
+- TLS SMTP only 
+- Hide SMTP errors 
+Reject: 
+test@example.com BCC:evil@gmail.com 
+10. ERROR HANDLING 
+- Global error handler 
+- Log internal errors 
+- Return generic message 
+- Never expose stack traces, SQL queries, file paths 
+11. PRODUCTION HARDENING 
+When NODE_ENV=production: 
+- Enforce HTTPS 
+- Enable HSTS 
+- DB SSL enabled 
+- Secure cookies only 
+- Disable verbose logs 
+- Disable detailed errors 
+12. PERFORMANCE & ABUSE PROTECTION 
+- Limit JSON size 
+- Catch unhandled rejections 
+- Catch uncaught exceptions 
+- Avoid blocking event loop
+13. SECURITY TEST CASES (MUST FAIL) 
+' OR 1=1 -- 
+DROP TABLE contact_requests; 
+<script>alert(1)</script> 
+javascript:alert(1) 
+test@example.com BCC:evil@gmail.com 
+FINAL EXPECTATION 
+✔ SQL Injection Safe 
+✔ XSS Protected 
+✔ CSRF Protected 
+✔ Bot Resistant 
+✔ Spam Controlled 
+✔ Email Injection Safe 
+✔ Production Hardened 
+✔ OWASP Top 10 Aligned 
+✔ Financial-Industry Secure 
+Enhance security layers only. Do not remove business logic. Keep code modular and production-ready.
+
+

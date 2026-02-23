@@ -18,6 +18,7 @@ export function Navigation() {
     { href: "/wealth-tracker", label: t('nav.wealthTracker') },
     { href: "/fin-score", label: t('nav.finScore') },
     { href: "/retirement-planner", label: t('nav.retirementPlanner') },
+    { href: "/insurance-gap-guide", label: t('nav.insuranceGapGuide') },
   ];
 
   const isToolPage = toolLinks.some(l => l.href === location);

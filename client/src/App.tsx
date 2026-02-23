@@ -13,6 +13,7 @@ import FinScore from "@/pages/FinScore";
 import Contact from "@/pages/Contact";
 import Info from "@/pages/Info";
 import RetirementPlanner from "@/pages/RetirementPlanner";
+import InsuranceGapGuide from "@/pages/InsuranceGapGuide";
 
 function ScrollToTop() {
   const [location] = useLocation();
@@ -30,6 +31,7 @@ function Router() {
       <Route path="/wealth-tracker" component={WealthTracker} />
       <Route path="/fin-score" component={FinScore} />
       <Route path="/retirement-planner" component={RetirementPlanner} />
+      <Route path="/insurance-gap-guide" component={InsuranceGapGuide} />
       <Route path="/info" component={Info} />
       <Route path="/contact" component={Contact} />
       <Route component={NotFound} />

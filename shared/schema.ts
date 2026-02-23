@@ -9,6 +9,7 @@ export const interestTypes = [
   "child_plan",
   "sme_insurance",
   "general_query",
+  "insurance_gap_analysis",
 ] as const;
 
 export const contactRequests = pgTable("contact_requests", {
